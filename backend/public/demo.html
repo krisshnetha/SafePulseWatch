@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SafePulse Demo Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: white;
+      padding: 30px;
+    }
+    button {
+      padding: 14px 20px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .fire { background: #c62828; color: white; }
+    .gas { background: #ef6c00; color: white; }
+    .view { background: #1565c0; color: white; }
+    pre {
+      background: #111827;
+      padding: 16px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SafePulse Demo Control</h1>
+
+  <button class="fire" onclick="triggerFire()">Trigger Fire Alert</button>
+  <button class="gas" onclick="triggerGas()">Trigger Gas Alert</button>
+  <button class="view" onclick="loadLogs()">View SOS Logs</button>
+
+  <h2>Output</h2>
+  <pre id="output">No action yet.</pre>
+
+  <script>
+    async function triggerFire() {
+      const res = await fetch('/api/trigger-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'FIRE ALERT',
+          severity: 'HIGH',
+          message: 'Fire detected. Evacuate immediately.'
+        })
+      });
+      const data = await res.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function triggerGas() {
+      const res = await fetch('/api/trigger-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'GAS ALERT',
+          severity: 'HIGH',
+          message: 'Gas leak detected. Move away immediately.'
+        })
+      });
+      const data = await res.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function loadLogs() {
+      const res = await fetch('/api/logs');
+      const data = await res.json();
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
