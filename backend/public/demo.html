@@ -1,76 +1,327 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafePulse Demo Control</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #0b1020;
       color: white;
-      padding: 30px;
+      margin: 0;
+      padding: 24px;
     }
+
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #121a2f;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #2a3553;
+      background: #0f172a;
+      color: white;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
     button {
-      padding: 14px 20px;
-      margin: 10px;
-      font-size: 18px;
+      padding: 12px 16px;
+      margin-right: 8px;
+      margin-bottom: 10px;
+      font-size: 14px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
+      font-weight: bold;
     }
-    .fire { background: #c62828; color: white; }
-    .gas { background: #ef6c00; color: white; }
-    .view { background: #1565c0; color: white; }
+
+    .primary { background: #1565c0; color: white; }
+    .danger { background: #c62828; color: white; }
+    .warning { background: #ef6c00; color: white; }
+    .success { background: #2e7d32; color: white; }
+    .secondary { background: #546e7a; color: white; }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #1d2a4a;
+      margin-right: 8px;
+      font-size: 12px;
+    }
+
     pre {
-      background: #111827;
-      padding: 16px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #0f172a;
+      padding: 14px;
       border-radius: 10px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #26324d;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: #ffd54f;
+    }
+
+    .muted {
+      color: #b0bec5;
+      font-size: 13px;
+    }
+
+    .status-row {
+      margin-bottom: 12px;
     }
   </style>
 </head>
 <body>
-  <h1>SafePulse Demo Control</h1>
+  <div class="container">
+    <h1>SafePulse Demo Control Panel</h1>
+    <p class="muted">Use this page to trigger fake emergency alerts, save a demo profile, and view live SOS logs.</p>
 
-  <button class="fire" onclick="triggerFire()">Trigger Fire Alert</button>
-  <button class="gas" onclick="triggerGas()">Trigger Gas Alert</button>
-  <button class="view" onclick="loadLogs()">View SOS Logs</button>
+    <div class="grid">
+      <div class="card">
+        <h2>Trigger Emergency Alert</h2>
 
-  <h2>Output</h2>
-  <pre id="output">No action yet.</pre>
+        <label for="type">Alert Type</label>
+        <select id="type">
+          <option value="FIRE ALERT">FIRE ALERT</option>
+          <option value="GAS ALERT">GAS ALERT</option>
+          <option value="EVACUATION ALERT">EVACUATION ALERT</option>
+        </select>
+
+        <label for="severity">Severity</label>
+        <select id="severity">
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+
+        <label for="instruction">Instruction</label>
+        <textarea id="instruction">Evacuate immediately. Proceed to the nearest safe exit.</textarea>
+
+        <label for="locationName">Location Name</label>
+        <input id="locationName" value="Demo Zone A" />
+
+        <button class="danger" onclick="triggerAlert()">Trigger Alert</button>
+        <button class="secondary" onclick="clearAlert()">Clear Alert</button>
+        <button class="primary" onclick="loadCurrentAlert()">Refresh Current Alert</button>
+      </div>
+
+      <div class="card">
+        <h2>Store Demo Profile</h2>
+
+        <label for="userId">User ID</label>
+        <input id="userId" value="demo-user" />
+
+        <label for="profile">Accessibility Profile</label>
+        <select id="profile">
+          <option value="Vision">Vision</option>
+          <option value="Hearing">Hearing</option>
+          <option value="Speech">Speech</option>
+          <option value="Mobility">Mobility</option>
+          <option value="Cognitive">Cognitive</option>
+        </select>
+
+        <label for="contactName">Caregiver Contact Name</label>
+        <input id="contactName" value="Demo Caregiver" />
+
+        <label for="contactNumber">Caregiver Contact Number</label>
+        <input id="contactNumber" value="+6500000000" />
+
+        <button class="success" onclick="saveProfile()">Save Profile</button>
+        <button class="primary" onclick="loadProfile()">Load Profile</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top: 20px;">
+      <div class="card">
+        <h2>Current Active Alert</h2>
+        <div class="status-row" id="alertSummary">
+          <span class="pill">No alert loaded</span>
+        </div>
+        <pre id="alertOutput">No data yet.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Profile Data</h2>
+        <pre id="profileOutput">No profile data yet.</pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h2>SOS Logs</h2>
+      <button class="warning" onclick="loadLogs()">Refresh SOS Logs</button>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Profile</th>
+            <th>Alert</th>
+            <th>Location</th>
+            <th>Message</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody id="logsTable">
+          <tr>
+            <td colspan="6">No logs loaded.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   <script>
-    async function triggerFire() {
+    async function triggerAlert() {
+      const payload = {
+        type: document.getElementById('type').value,
+        severity: document.getElementById('severity').value,
+        instruction: document.getElementById('instruction').value,
+        locationName: document.getElementById('locationName').value
+      };
+
       const res = await fetch('/api/trigger-alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'FIRE ALERT',
-          severity: 'HIGH',
-          message: 'Fire detected. Evacuate immediately.'
-        })
+        body: JSON.stringify(payload)
       });
+
       const data = await res.json();
-      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      renderCurrentAlert(data.alert);
     }
 
-    async function triggerGas() {
-      const res = await fetch('/api/trigger-alert', {
+    async function clearAlert() {
+      const res = await fetch('/api/clear-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await res.json();
+      renderCurrentAlert(data.alert);
+    }
+
+    async function loadCurrentAlert() {
+      const res = await fetch('/api/alert');
+      const data = await res.json();
+      renderCurrentAlert(data.alert);
+    }
+
+    function renderCurrentAlert(alert) {
+      const summary = document.getElementById('alertSummary');
+      const output = document.getElementById('alertOutput');
+
+      if (!alert || !alert.active) {
+        summary.innerHTML = '<span class="pill">No active alert</span>';
+      } else {
+        summary.innerHTML = `
+          <span class="pill">${alert.type}</span>
+          <span class="pill">${alert.severity}</span>
+          <span class="pill">${alert.locationName}</span>
+        `;
+      }
+
+      output.textContent = JSON.stringify(alert, null, 2);
+    }
+
+    async function saveProfile() {
+      const payload = {
+        userId: document.getElementById('userId').value,
+        profile: document.getElementById('profile').value,
+        contactName: document.getElementById('contactName').value,
+        contactNumber: document.getElementById('contactNumber').value
+      };
+
+      const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'GAS ALERT',
-          severity: 'HIGH',
-          message: 'Gas leak detected. Move away immediately.'
-        })
+        body: JSON.stringify(payload)
       });
+
       const data = await res.json();
-      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('profileOutput').textContent = JSON.stringify(data.profile, null, 2);
+    }
+
+    async function loadProfile() {
+      const res = await fetch('/api/profile');
+      const data = await res.json();
+      document.getElementById('profileOutput').textContent = JSON.stringify(data.profile, null, 2);
     }
 
     async function loadLogs() {
       const res = await fetch('/api/logs');
       const data = await res.json();
-      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      const tbody = document.getElementById('logsTable');
+
+      if (!data.logs || data.logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No SOS logs yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.logs.map(log => `
+        <tr>
+          <td>${log.time || '-'}</td>
+          <td>${log.profile || '-'}</td>
+          <td>${log.alertType || '-'}</td>
+          <td>${log.latitude ?? '-'}, ${log.longitude ?? '-'}</td>
+          <td>${log.message || '-'}</td>
+          <td>${log.source || '-'}</td>
+        </tr>
+      `).join('');
     }
+
+    loadCurrentAlert();
+    loadProfile();
+    loadLogs();
+    setInterval(loadLogs, 5000);
+    setInterval(loadCurrentAlert, 5000);
   </script>
 </body>
 </html>
