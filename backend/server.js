@@ -21,6 +21,7 @@ let currentProfile = {
 let currentAlert = null;
 let alertHistory = [];
 let sosLogs = [];
+let smsLogs = [];
 
 function createInstruction(type) {
   switch (type) {
@@ -151,10 +152,54 @@ app.post('/api/sos', (req, res) => {
 
   sosLogs.unshift(log);
 
+  const smsPayload = {
+    id: 'sms-' + Date.now().toString(),
+    time: new Date().toISOString(),
+    contactNumber: currentProfile.contactNumber,
+    contactName: currentProfile.contactName,
+    message: `SOS from ${log.userName} (${log.profile}) at (${log.latitude}, ${log.longitude})`,
+    linkedSosId: log.id,
+    source: 'auto-from-sos'
+  };
+
+  smsLogs.unshift(smsPayload);
+
   res.json({
     success: true,
     message: 'SOS logged successfully',
-    received: log
+    received: log,
+    smsNotification: smsPayload
+  });
+});
+
+app.post('/api/sms-notify', (req, res) => {
+  const { contactNumber, contactName, location, message, profile, source } = req.body || {};
+
+  const payload = {
+    id: 'sms-' + Date.now().toString(),
+    time: new Date().toISOString(),
+    contactNumber: contactNumber || currentProfile.contactNumber,
+    contactName: contactName || currentProfile.contactName,
+    location: location || '1.3521,103.8198',
+    profile: profile || currentProfile.profile,
+    message: message || 'SafePulseWatch test caregiver notification',
+    source: source || 'watch'
+  };
+
+  smsLogs.unshift(payload);
+
+  res.json({
+    success: true,
+    message: 'SMS notification queued successfully',
+    queued: payload
+  });
+});
+
+app.get('/api/sms-logs', (_req, res) => {
+  res.json({
+    success: true,
+    count: smsLogs.length,
+    logs: smsLogs
   });
 });
 

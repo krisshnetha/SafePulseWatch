@@ -217,4 +217,8 @@ export class NetworkService {
       return false
     }
   }
+
+  static getMockLocationString(): string {
+    return '1.3521, 103.8198'
+  }
 }
