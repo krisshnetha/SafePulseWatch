@@ -9,31 +9,71 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let currentAlert = {
-  id: null,
-  type: 'NONE',
-  severity: 'LOW',
-  instruction: 'No active alerts',
-  locationName: 'N/A',
-  timestamp: null,
-  active: false
-};
-
-let sosLogs = [];
-let userProfileStore = {
+let currentProfile = {
   userId: 'demo-user',
-  profile: 'Vision',
+  name: '',
+  profile: '',
   contactName: 'Demo Caregiver',
   contactNumber: '+6500000000',
   updatedAt: new Date().toISOString()
 };
 
+let currentAlert = null;
+let alertHistory = [];
+let sosLogs = [];
 
+function createInstruction(type) {
+  switch (type) {
+    case 'FIRE':
+      return 'Evacuate immediately via nearest exit. Do not use elevators.';
+    case 'EARTHQUAKE':
+      return 'Drop, Cover, Hold On. Move away from windows.';
+    case 'FLOOD':
+      return 'Move to higher ground and avoid low-lying areas.';
+    case 'EVACUATION':
+      return 'Proceed to Exit B and follow staff instructions.';
+    case 'MEDICAL':
+      return 'Medical emergency nearby. Keep the route clear.';
+    case 'SECURITY':
+      return 'Security incident reported. Remain calm and await guidance.';
+    default:
+      return 'Follow emergency instructions carefully.';
+  }
+}
+
+function buildStats() {
+  return {
+    total: sosLogs.length,
+    active: sosLogs.filter((log) => log.status === 'ACTIVE').length,
+    acknowledged: sosLogs.filter((log) => log.status === 'ACKNOWLEDGED').length,
+    resolved: sosLogs.filter((log) => log.status === 'RESOLVED').length
+  };
+}
 
 app.get('/api/health', (_req, res) => {
+  res.json({ success: true, message: 'SafePulse backend is running' });
+});
+
+app.get('/api/profile', (_req, res) => {
+  res.json({ success: true, profile: currentProfile });
+});
+
+app.post('/api/profile', (req, res) => {
+  const { userId, name, profile, contactName, contactNumber } = req.body || {};
+
+  currentProfile = {
+    userId: userId || 'demo-user',
+    name: name || '',
+    profile: profile || '',
+    contactName: contactName || 'Demo Caregiver',
+    contactNumber: contactNumber || '+6500000000',
+    updatedAt: new Date().toISOString()
+  };
+
   res.json({
     success: true,
-    message: 'SafePulse backend is running'
+    message: 'Profile saved successfully',
+    profile: currentProfile
   });
 });
 
@@ -44,115 +84,112 @@ app.get('/api/alert', (_req, res) => {
   });
 });
 
+app.get('/api/alerts', (_req, res) => {
+  res.json({
+    success: true,
+    alerts: alertHistory
+  });
+});
+
 app.post('/api/trigger-alert', (req, res) => {
   const { type, severity, instruction, locationName } = req.body || {};
 
-  currentAlert = {
+  const alert = {
     id: Date.now().toString(),
-    type: type || 'FIRE ALERT',
+    type: type || 'FIRE',
     severity: severity || 'HIGH',
-    instruction: instruction || 'Evacuate immediately.',
-    locationName: locationName || 'Demo Zone A',
+    instruction: instruction || createInstruction(type || 'FIRE'),
+    locationName: locationName || 'Main Building',
     timestamp: new Date().toISOString(),
-    active: true
+    active: true,
+    acknowledged: false,
+    resolved: false
   };
 
-  console.log('Alert triggered:', currentAlert);
+  currentAlert = alert;
+  alertHistory.unshift(alert);
 
   res.json({
     success: true,
     message: 'Alert triggered successfully',
-    alert: currentAlert
+    alert
   });
 });
 
 app.post('/api/clear-alert', (_req, res) => {
-  currentAlert = {
-    id: null,
-    type: 'NONE',
-    severity: 'LOW',
-    instruction: 'No active alerts',
-    locationName: 'N/A',
-    timestamp: null,
-    active: false
-  };
-
-  console.log('Alert cleared');
-
+  currentAlert = null;
   res.json({
     success: true,
-    message: 'Alert cleared successfully',
-    alert: currentAlert
+    message: 'Current alert cleared'
   });
 });
 
-app.get('/api/profile', (_req, res) => {
+app.post('/api/clear-alerts', (_req, res) => {
+  currentAlert = null;
+  alertHistory = [];
   res.json({
     success: true,
-    profile: userProfileStore
-  });
-});
-
-app.post('/api/profile', (req, res) => {
-  const { userId, profile, contactName, contactNumber } = req.body || {};
-
-  userProfileStore = {
-    userId: userId || 'demo-user',
-    profile: profile || 'Vision',
-    contactName: contactName || 'Demo Caregiver',
-    contactNumber: contactNumber || '+6500000000',
-    updatedAt: new Date().toISOString()
-  };
-
-  console.log('Profile stored:', userProfileStore);
-
-  res.json({
-    success: true,
-    message: 'Profile saved successfully',
-    profile: userProfileStore
+    message: 'All alerts cleared'
   });
 });
 
 app.post('/api/sos', (req, res) => {
-  const {
-    profile,
-    alertType,
-    latitude,
-    longitude,
-    message,
-    source
-  } = req.body || {};
+  const { userName, profile, alertType, latitude, longitude, message, source } = req.body || {};
 
-  const payload = {
+  const log = {
     id: Date.now().toString(),
-    time: new Date().toISOString(),
-    profile: profile || 'Unknown',
-    alertType: alertType || currentAlert.type || 'NONE',
+    userName: userName || currentProfile.name || 'Unknown User',
+    profile: profile || currentProfile.profile || 'Unknown',
+    alertType: alertType || (currentAlert ? currentAlert.type : 'NONE'),
     latitude: latitude ?? 1.3521,
     longitude: longitude ?? 103.8198,
-    message: message || 'User requested emergency help',
+    message: message || 'I need emergency assistance.',
+    time: new Date().toISOString(),
+    status: 'ACTIVE',
     source: source || 'watch'
   };
 
-  sosLogs.unshift(payload);
-
-  console.log('SOS received:', payload);
+  sosLogs.unshift(log);
 
   res.json({
     success: true,
     message: 'SOS logged successfully',
-    received: payload
+    received: log
   });
 });
 
 app.get('/api/logs', (_req, res) => {
   res.json({
     success: true,
-    count: sosLogs.length,
+    stats: buildStats(),
     logs: sosLogs
   });
 });
 
+app.patch('/api/logs/:id/acknowledge', (req, res) => {
+  const { id } = req.params;
+  const log = sosLogs.find((item) => item.id === id);
+
+  if (!log) {
+    return res.status(404).json({ success: false, message: 'Log not found' });
+  }
+
+  log.status = 'ACKNOWLEDGED';
+  res.json({ success: true, log, stats: buildStats() });
+});
+
+app.patch('/api/logs/:id/resolve', (req, res) => {
+  const { id } = req.params;
+  const log = sosLogs.find((item) => item.id === id);
+
+  if (!log) {
+    return res.status(404).json({ success: false, message: 'Log not found' });
+  }
+
+  log.status = 'RESOLVED';
+  res.json({ success: true, log, stats: buildStats() });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Backend running on http://0.0.0.0:${PORT}`);
+  console.log(`SafePulse backend running on http://0.0.0.0:${PORT}`);
 });
