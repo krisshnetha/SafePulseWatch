@@ -113,3 +113,10 @@ struct Index {
     .height('100%')
   }
 }
+@Preview
+@Component
+struct IndexPreview {
+  build() {
+    Index()
+  }
+}
