@@ -1,9 +1,11 @@
-import { NetworkService, AlertItem } from '../services/NetworkService'
+import { BigButton } from '../components/BigButton'
 
 @Component
 export struct HomePage {
   profileName: string = 'Blind'
   userName: string = ''
+  monitoringEnabled: boolean = true
+  monitorEventText: string = 'No suspicious audio pattern detected yet'
   onProfile: () => void = () => {}
   onAdmin: () => void = () => {}
   onWatch: () => void = () => {}

@@ -9,6 +9,9 @@ import { SOSLogPage } from './SOSLogPage'
 import { ProfileService } from '../services/ProfileService'
 import { HapticService } from '../services/HapticService'
 import { NetworkService } from '../services/NetworkService'
+import { GuardianAudioService } from '../services/GuardianAudioService'
+import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
+import { SmsNotificationService } from '../services/SmsNotificationService'
 
 @Entry
 @Component
@@ -19,12 +22,15 @@ struct Index {
   @State currentAlertType: string = 'FIRE'
   @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
   @State locationText: string = 'SOS sent successfully'
+  @State monitoringEnabled: boolean = true
+  @State monitorEventText: string = 'No suspicious audio pattern detected yet'
 
-  aboutToAppear() {
+  aboutToAppear(): void {
+    this.monitoringEnabled = GuardianAudioService.isMonitoringEnabled()
     this.loadInitialProfile()
   }
 
-  async loadInitialProfile() {
+  async loadInitialProfile(): Promise<void> {
     const profile = await NetworkService.fetchProfile()
     if (profile) {
       if (profile.profile) {
@@ -38,17 +44,19 @@ struct Index {
     }
   }
 
-  async checkBackendAlert() {
+  async checkBackendAlert(): Promise<void> {
     const alert = await NetworkService.fetchCurrentAlert()
     if (alert) {
       this.currentAlertType = alert.type
       this.currentAlertInstruction = alert.instruction
       HapticService.trigger(this.selectedProfile)
       this.currentPage = 'alert'
+    } else {
+      this.monitorEventText = 'No active backend alert right now.'
     }
   }
 
-  async sendSOS(message: string) {
+  async sendSOS(message: string): Promise<void> {
     const ok = await NetworkService.sendSOS(
       this.userName === '' ? 'Unknown User' : this.userName,
       this.selectedProfile,
@@ -59,7 +67,8 @@ struct Index {
     )
 
     if (ok) {
-      this.locationText = 'Live location and SOS were sent successfully'
+      const channel = AlertPersonalizationService.getPrimaryChannel(this.selectedProfile)
+      this.locationText = 'Live location and SOS were sent successfully (' + channel + ' priority)'
     } else {
       this.locationText = 'Failed to send SOS to backend'
     }
@@ -73,6 +82,8 @@ struct Index {
         HomePage({
           profileName: this.selectedProfile,
           userName: this.userName,
+          monitoringEnabled: this.monitoringEnabled,
+          monitorEventText: this.monitorEventText,
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -90,6 +101,43 @@ struct Index {
           },
           onCheckBackend: () => {
             this.checkBackendAlert()
+          },
+          onSOS: () => {
+            HapticService.trigger(this.selectedProfile)
+            this.sendSOS('I need emergency assistance from dashboard.')
+          },
+          onToggleMonitoring: () => {
+            const enabled = GuardianAudioService.toggleMonitoring()
+            this.monitoringEnabled = enabled
+            if (enabled) {
+              this.monitorEventText = 'Monitoring resumed. Local microphone classifier is active.'
+            } else {
+              this.monitorEventText = 'Monitoring paused by user. Tap resume to reactivate protection.'
+            }
+          },
+          onSimulateAudioDetection: () => {
+            const result = GuardianAudioService.simulateAudioPattern('fire-alarm')
+            if (result.detected) {
+              const channel = AlertPersonalizationService.getPrimaryChannel(this.selectedProfile)
+              this.monitorEventText = 'Fire-alarm pattern detected locally at ' + result.detectedAt
+              this.currentAlertType = 'FIRE ALARM DETECTED'
+              this.currentAlertInstruction = 'Detected local alarm pattern. Move to safe route and request help if needed.'
+              HapticService.trigger(this.selectedProfile)
+              console.info('Guardian channel selection: ' + channel)
+              this.currentPage = 'alert'
+            } else {
+              this.monitorEventText = result.reason
+            }
+          },
+          onSendTestSms: () => {
+            const sent = SmsNotificationService.sendTestNotification(
+              '+6500000000',
+              NetworkService.getMockLocationString(),
+              this.selectedProfile
+            )
+            this.monitorEventText = sent
+              ? 'Test SMS event queued for caregiver notification.'
+              : 'SMS notification skipped due to offline simulation.'
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -137,6 +185,7 @@ struct Index {
             this.currentPage = 'home'
           },
           onSOS: () => {
+            HapticService.trigger(this.selectedProfile)
             this.sendSOS('SOS triggered from emergency alert screen.')
           }
         })
@@ -167,6 +216,7 @@ struct Index {
     .backgroundColor('#06101F')
   }
 }
+
 @Preview
 @Component
 struct IndexPreview {
