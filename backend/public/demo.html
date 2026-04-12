@@ -3,223 +3,524 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SafePulse Demo Control</title>
+  <title>SafePulse Demo Control Panel</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1020;
-      color: white;
-      margin: 0;
-      padding: 24px;
+    :root {
+      --bg: #071224;
+      --panel: #0f1b33;
+      --panel-2: #13203b;
+      --muted: #8ea3c7;
+      --text: #ffffff;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 16px 40px rgba(0,0,0,0.35);
+
+      --red: #ef4444;
+      --red-soft: rgba(239,68,68,0.14);
+
+      --blue: #3b82f6;
+      --blue-soft: rgba(59,130,246,0.14);
+
+      --green: #22c55e;
+      --green-soft: rgba(34,197,94,0.14);
+
+      --amber: #f59e0b;
+      --amber-soft: rgba(245,158,11,0.14);
+
+      --chip: #1a2a48;
+      --input: #0d1730;
     }
 
-    h1, h2, h3 {
-      margin-top: 0;
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(59,130,246,0.16), transparent 22%),
+        radial-gradient(circle at top left, rgba(239,68,68,0.14), transparent 18%),
+        linear-gradient(180deg, #081226 0%, #06101f 100%);
+      color: var(--text);
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1320px;
       margin: 0 auto;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .brand h1 {
+      margin: 0 0 10px;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: 1.15fr 0.95fr;
       gap: 20px;
+      margin-bottom: 20px;
     }
 
-    .card {
-      background: #121a2f;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    .panel {
+      background: linear-gradient(180deg, rgba(19,32,59,0.96) 0%, rgba(13,23,48,0.96) 100%);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(8px);
+    }
+
+    .panel h2 {
+      margin: 0 0 18px;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
+
+    .subgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stat .value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
     }
 
     label {
       display: block;
       margin-bottom: 8px;
-      font-weight: bold;
+      font-weight: 700;
+      font-size: 14px;
     }
 
-    input, select, textarea {
+    input,
+    select,
+    textarea {
       width: 100%;
-      box-sizing: border-box;
-      margin-bottom: 14px;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #2a3553;
-      background: #0f172a;
-      color: white;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 14px 15px;
       font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(59,130,246,0.55);
+      transform: translateY(-1px);
     }
 
     textarea {
-      min-height: 90px;
+      min-height: 96px;
       resize: vertical;
     }
 
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .row > * {
+      flex: 1;
+      min-width: 160px;
+    }
+
     button {
+      border: 0;
+      border-radius: 14px;
       padding: 12px 16px;
-      margin-right: 8px;
-      margin-bottom: 10px;
       font-size: 14px;
-      border: none;
-      border-radius: 10px;
+      font-weight: 700;
+      color: white;
       cursor: pointer;
-      font-weight: bold;
+      transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.2s ease;
     }
 
-    .primary { background: #1565c0; color: white; }
-    .danger { background: #c62828; color: white; }
-    .warning { background: #ef6c00; color: white; }
-    .success { background: #2e7d32; color: white; }
-    .secondary { background: #546e7a; color: white; }
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
+    }
 
-    .pill {
-      display: inline-block;
-      padding: 6px 10px;
+    .btn-red { background: var(--red); box-shadow: 0 8px 18px var(--red-soft); }
+    .btn-blue { background: var(--blue); box-shadow: 0 8px 18px var(--blue-soft); }
+    .btn-green { background: var(--green); box-shadow: 0 8px 18px var(--green-soft); }
+    .btn-amber { background: var(--amber); box-shadow: 0 8px 18px var(--amber-soft); }
+    .btn-slate { background: #64748b; }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 10px;
       border-radius: 999px;
-      background: #1d2a4a;
-      margin-right: 8px;
       font-size: 12px;
+      font-weight: 700;
+      background: var(--chip);
+      border: 1px solid var(--border);
     }
+
+    .badge.red { background: var(--red-soft); color: #ffb4b4; }
+    .badge.blue { background: var(--blue-soft); color: #b8d2ff; }
+    .badge.green { background: var(--green-soft); color: #b7f0c9; }
+    .badge.amber { background: var(--amber-soft); color: #ffd68a; }
 
     pre {
+      margin: 0;
       white-space: pre-wrap;
-      word-wrap: break-word;
-      background: #0f172a;
-      padding: 14px;
-      border-radius: 10px;
-      overflow-x: auto;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: rgba(5, 10, 25, 0.45);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      overflow: auto;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .log-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .log-card {
+      background: rgba(8, 18, 38, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .log-card.active {
+      border-color: rgba(239,68,68,0.45);
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.12) inset;
+    }
+
+    .log-card.acknowledged {
+      border-color: rgba(245,158,11,0.42);
+    }
+
+    .log-card.resolved {
+      border-color: rgba(34,197,94,0.38);
+    }
+
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .log-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .log-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .log-message {
+      color: #d8e1f0;
+      margin: 8px 0 10px;
+      font-size: 14px;
+    }
+
+    .log-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px 0 4px;
+      font-size: 14px;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
       margin-top: 12px;
-      font-size: 13px;
     }
 
-    th, td {
-      border-bottom: 1px solid #26324d;
-      padding: 10px;
-      text-align: left;
-      vertical-align: top;
+    .quick-btn {
+      padding: 14px;
+      border-radius: 16px;
+      background: #132341;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-weight: 800;
+      text-align: center;
+      user-select: none;
     }
 
-    th {
-      color: #ffd54f;
-    }
+    .quick-btn.fire { box-shadow: inset 0 0 0 1px rgba(239,68,68,0.26); }
+    .quick-btn.evac { box-shadow: inset 0 0 0 1px rgba(168,85,247,0.26); }
+    .quick-btn.med { box-shadow: inset 0 0 0 1px rgba(34,197,94,0.26); }
 
-    .muted {
-      color: #b0bec5;
-      font-size: 13px;
-    }
+    @media (max-width: 980px) {
+      .grid,
+      .subgrid,
+      .stats {
+        grid-template-columns: 1fr;
+      }
 
-    .status-row {
-      margin-bottom: 12px;
+      .topbar {
+        flex-direction: column;
+      }
+
+      .quick-actions {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>SafePulse Demo Control Panel</h1>
-    <p class="muted">Use this page to trigger fake emergency alerts, save a demo profile, and view live SOS logs.</p>
-
-    <div class="grid">
-      <div class="card">
-        <h2>Trigger Emergency Alert</h2>
-
-        <label for="type">Alert Type</label>
-        <select id="type">
-          <option value="FIRE ALERT">FIRE ALERT</option>
-          <option value="GAS ALERT">GAS ALERT</option>
-          <option value="EVACUATION ALERT">EVACUATION ALERT</option>
-        </select>
-
-        <label for="severity">Severity</label>
-        <select id="severity">
-          <option value="HIGH">HIGH</option>
-          <option value="MEDIUM">MEDIUM</option>
-          <option value="LOW">LOW</option>
-        </select>
-
-        <label for="instruction">Instruction</label>
-        <textarea id="instruction">Evacuate immediately. Proceed to the nearest safe exit.</textarea>
-
-        <label for="locationName">Location Name</label>
-        <input id="locationName" value="Demo Zone A" />
-
-        <button class="danger" onclick="triggerAlert()">Trigger Alert</button>
-        <button class="secondary" onclick="clearAlert()">Clear Alert</button>
-        <button class="primary" onclick="loadCurrentAlert()">Refresh Current Alert</button>
+    <div class="topbar">
+      <div class="brand">
+        <h1>SafePulse Demo Control Panel</h1>
+        <p>Trigger emergency scenarios, store demo user profiles, and monitor SOS activity in real time.</p>
       </div>
 
-      <div class="card">
-        <h2>Store Demo Profile</h2>
-
-        <label for="userId">User ID</label>
-        <input id="userId" value="demo-user" />
-
-        <label for="profile">Accessibility Profile</label>
-        <select id="profile">
-          <option value="Vision">Vision</option>
-          <option value="Hearing">Hearing</option>
-          <option value="Speech">Speech</option>
-          <option value="Mobility">Mobility</option>
-          <option value="Cognitive">Cognitive</option>
-        </select>
-
-        <label for="contactName">Caregiver Contact Name</label>
-        <input id="contactName" value="Demo Caregiver" />
-
-        <label for="contactNumber">Caregiver Contact Number</label>
-        <input id="contactNumber" value="+6500000000" />
-
-        <button class="success" onclick="saveProfile()">Save Profile</button>
-        <button class="primary" onclick="loadProfile()">Load Profile</button>
+      <div class="top-actions">
+        <button class="btn-blue" onclick="loadCurrentAlert()">Refresh Alert</button>
+        <button class="btn-amber" onclick="loadProfile()">Load Profile</button>
+        <button class="btn-green" onclick="loadLogs()">Refresh SOS Logs</button>
       </div>
     </div>
 
-    <div class="grid" style="margin-top: 20px;">
-      <div class="card">
+    <div class="stats">
+      <div class="stat">
+        <div class="value" id="statTotal">0</div>
+        <div class="label">Total SOS</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="statActive">0</div>
+        <div class="label">Active</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="statAcknowledged">0</div>
+        <div class="label">Acknowledged</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="statResolved">0</div>
+        <div class="label">Resolved</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>Trigger Emergency Alert</h2>
+
+        <div class="field">
+          <label for="type">Alert Type</label>
+          <select id="type">
+            <option value="FIRE">FIRE</option>
+            <option value="FLOOD">FLOOD</option>
+            <option value="EARTHQUAKE">EARTHQUAKE</option>
+            <option value="EVACUATION">EVACUATION</option>
+            <option value="MEDICAL">MEDICAL</option>
+            <option value="SECURITY">SECURITY</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="severity">Severity</label>
+            <select id="severity">
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH" selected>HIGH</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="locationName">Location Name</label>
+            <input id="locationName" value="Demo Zone A" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="instruction">Instruction</label>
+          <textarea id="instruction">Evacuate immediately. Proceed to the nearest safe exit.</textarea>
+        </div>
+
+        <div class="row">
+          <button class="btn-red" onclick="triggerAlert()">Trigger Alert</button>
+          <button class="btn-slate" onclick="clearAlert()">Clear Alert</button>
+          <button class="btn-blue" onclick="loadCurrentAlert()">Refresh Current Alert</button>
+        </div>
+
+        <div class="quick-actions">
+          <div class="quick-btn fire" onclick="presetAlert('FIRE', 'HIGH', 'Evacuate immediately via nearest exit. Do not use elevators.')">🔥 Quick Fire</div>
+          <div class="quick-btn evac" onclick="presetAlert('EVACUATION', 'HIGH', 'Proceed to Exit B and follow staff instructions.')">🚨 Quick Evacuation</div>
+          <div class="quick-btn med" onclick="presetAlert('MEDICAL', 'MEDIUM', 'Medical emergency nearby. Keep the route clear.')">🚑 Quick Medical</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Store Demo Profile</h2>
+
+        <div class="field">
+          <label for="userId">User ID</label>
+          <input id="userId" value="demo-user" />
+        </div>
+
+        <div class="field">
+          <label for="profile">Accessibility Profile</label>
+          <select id="profile">
+            <option value="Blind">Blind</option>
+            <option value="Deaf">Deaf</option>
+            <option value="Speech">Speech</option>
+            <option value="Mobility">Mobility</option>
+            <option value="Elderly">Elderly</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="name">User Name</label>
+          <input id="name" value="Demo User" />
+        </div>
+
+        <div class="field">
+          <label for="contactName">Caregiver Contact Name</label>
+          <input id="contactName" value="Demo Caregiver" />
+        </div>
+
+        <div class="field">
+          <label for="contactNumber">Caregiver Contact Number</label>
+          <input id="contactNumber" value="+6500000000" />
+        </div>
+
+        <div class="row">
+          <button class="btn-green" onclick="saveProfile()">Save Profile</button>
+          <button class="btn-blue" onclick="loadProfile()">Load Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="subgrid">
+      <div class="panel">
         <h2>Current Active Alert</h2>
-        <div class="status-row" id="alertSummary">
-          <span class="pill">No alert loaded</span>
+        <div class="badge-row" id="alertBadges">
+          <span class="badge">No active alert</span>
         </div>
         <pre id="alertOutput">No data yet.</pre>
       </div>
 
-      <div class="card">
+      <div class="panel">
         <h2>Profile Data</h2>
         <pre id="profileOutput">No profile data yet.</pre>
       </div>
     </div>
 
-    <div class="card" style="margin-top: 20px;">
+    <div class="panel">
       <h2>SOS Logs</h2>
-      <button class="warning" onclick="loadLogs()">Refresh SOS Logs</button>
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Profile</th>
-            <th>Alert</th>
-            <th>Location</th>
-            <th>Message</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody id="logsTable">
-          <tr>
-            <td colspan="6">No logs loaded.</td>
-          </tr>
-        </tbody>
-      </table>
+
+      <div class="filters">
+        <button class="btn-red" onclick="setFilter('ALL')">All</button>
+        <button class="btn-blue" onclick="setFilter('ACTIVE')">Active</button>
+        <button class="btn-amber" onclick="setFilter('ACKNOWLEDGED')">Acknowledged</button>
+        <button class="btn-green" onclick="setFilter('RESOLVED')">Resolved</button>
+      </div>
+
+      <div id="logsList" class="log-list">
+        <div class="empty">No SOS logs yet.</div>
+      </div>
     </div>
   </div>
 
   <script>
+    let currentFilter = 'ALL';
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      loadLogs();
+    }
+
+    function presetAlert(type, severity, instruction) {
+      document.getElementById('type').value = type;
+      document.getElementById('severity').value = severity;
+      document.getElementById('instruction').value = instruction;
+    }
+
     async function triggerAlert() {
       const payload = {
         type: document.getElementById('type').value,
@@ -244,8 +545,8 @@
         headers: { 'Content-Type': 'application/json' }
       });
 
-      const data = await res.json();
-      renderCurrentAlert(data.alert);
+      await res.json();
+      loadCurrentAlert();
     }
 
     async function loadCurrentAlert() {
@@ -255,18 +556,21 @@
     }
 
     function renderCurrentAlert(alert) {
-      const summary = document.getElementById('alertSummary');
+      const badges = document.getElementById('alertBadges');
       const output = document.getElementById('alertOutput');
 
-      if (!alert || !alert.active) {
-        summary.innerHTML = '<span class="pill">No active alert</span>';
-      } else {
-        summary.innerHTML = `
-          <span class="pill">${alert.type}</span>
-          <span class="pill">${alert.severity}</span>
-          <span class="pill">${alert.locationName}</span>
-        `;
+      if (!alert) {
+        badges.innerHTML = `<span class="badge">No active alert</span>`;
+        output.textContent = 'null';
+        return;
       }
+
+      badges.innerHTML = `
+        <span class="badge red">${alert.type}</span>
+        <span class="badge amber">${alert.severity}</span>
+        <span class="badge blue">${alert.locationName}</span>
+        <span class="badge green">${new Date(alert.timestamp).toLocaleTimeString()}</span>
+      `;
 
       output.textContent = JSON.stringify(alert, null, 2);
     }
@@ -274,6 +578,7 @@
     async function saveProfile() {
       const payload = {
         userId: document.getElementById('userId').value,
+        name: document.getElementById('name').value,
         profile: document.getElementById('profile').value,
         contactName: document.getElementById('contactName').value,
         contactNumber: document.getElementById('contactNumber').value
@@ -295,33 +600,87 @@
       document.getElementById('profileOutput').textContent = JSON.stringify(data.profile, null, 2);
     }
 
+    async function acknowledgeLog(id) {
+      await fetch(`/api/logs/${id}/acknowledge`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      loadLogs();
+    }
+
+    async function resolveLog(id) {
+      await fetch(`/api/logs/${id}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      loadLogs();
+    }
+
     async function loadLogs() {
       const res = await fetch('/api/logs');
       const data = await res.json();
-      const tbody = document.getElementById('logsTable');
 
-      if (!data.logs || data.logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No SOS logs yet.</td></tr>';
+      const stats = data.stats || { total: 0, active: 0, acknowledged: 0, resolved: 0 };
+      document.getElementById('statTotal').textContent = stats.total;
+      document.getElementById('statActive').textContent = stats.active;
+      document.getElementById('statAcknowledged').textContent = stats.acknowledged;
+      document.getElementById('statResolved').textContent = stats.resolved;
+
+      let logs = data.logs || [];
+      if (currentFilter !== 'ALL') {
+        logs = logs.filter(log => log.status === currentFilter);
+      }
+
+      const logsList = document.getElementById('logsList');
+
+      if (!logs.length) {
+        logsList.innerHTML = `<div class="empty">No SOS logs for this filter.</div>`;
         return;
       }
 
-      tbody.innerHTML = data.logs.map(log => `
-        <tr>
-          <td>${log.time || '-'}</td>
-          <td>${log.profile || '-'}</td>
-          <td>${log.alertType || '-'}</td>
-          <td>${log.latitude ?? '-'}, ${log.longitude ?? '-'}</td>
-          <td>${log.message || '-'}</td>
-          <td>${log.source || '-'}</td>
-        </tr>
-      `).join('');
+      logsList.innerHTML = logs.map(log => {
+        const statusClass =
+          log.status === 'ACTIVE' ? 'active' :
+          log.status === 'ACKNOWLEDGED' ? 'acknowledged' :
+          'resolved';
+
+        const actionButton =
+          log.status === 'ACTIVE'
+            ? `<button class="btn-amber" onclick="acknowledgeLog('${log.id}')">Acknowledge</button>`
+            : log.status === 'ACKNOWLEDGED'
+            ? `<button class="btn-green" onclick="resolveLog('${log.id}')">Resolve</button>`
+            : '';
+
+        return `
+          <div class="log-card ${statusClass}">
+            <div class="log-head">
+              <div class="log-title">${log.userName || 'Unknown User'}</div>
+              <div>${actionButton}</div>
+            </div>
+
+            <div class="log-meta">
+              <span class="badge ${log.status === 'ACTIVE' ? 'red' : log.status === 'ACKNOWLEDGED' ? 'amber' : 'green'}">${log.status}</span>
+              <span class="badge">${log.profile || '-'}</span>
+              <span class="badge">${log.alertType || '-'}</span>
+            </div>
+
+            <div class="log-message">${log.message || '-'}</div>
+
+            <div class="log-footer">
+              <div>📍 ${log.latitude ?? '-'}, ${log.longitude ?? '-'}</div>
+              <div>🕒 ${log.time ? new Date(log.time).toLocaleString() : '-'}</div>
+              <div>📡 ${log.source || '-'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     loadCurrentAlert();
     loadProfile();
     loadLogs();
-    setInterval(loadLogs, 5000);
     setInterval(loadCurrentAlert, 5000);
+    setInterval(loadLogs, 5000);
   </script>
 </body>
 </html>
