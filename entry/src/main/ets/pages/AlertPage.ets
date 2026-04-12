@@ -4,6 +4,9 @@ export struct AlertPage {
   alertType: string = 'FIRE ALERT'
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
+  private readonly dangerBg: string = '#2A0F1A'
+  private readonly cardBg: string = '#3A1725'
+  private readonly accent: string = '#FF6E6E'
 
   private getInstruction(): string {
     if (this.profileName === 'Vision') {
@@ -53,51 +56,97 @@ export struct AlertPage {
     return '#0B1020'
   }
 
+  private getSeverityLabel(): string {
+    if (this.alertType.includes('FIRE')) {
+      return 'Severity: Extreme'
+    }
+    if (this.alertType.includes('FLOOD') || this.alertType.includes('RAIN')) {
+      return 'Severity: Severe'
+    }
+    return 'Severity: Moderate'
+  }
+
   build() {
-    Column({ space: 16 }) {
-      Text('EMERGENCY ALERT')
-        .fontSize(26)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#FF5252')
+    Scroll() {
+      Column({ space: 12 }) {
+        Text('Emergency Alert')
+          .fontSize(28)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.accent)
 
-      Text(this.alertType)
-        .fontSize(22)
-        .fontColor(Color.White)
+        Column({ space: 6 }) {
+          Text(this.alertType)
+            .fontSize(24)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFFFFF')
 
-      Text(this.getSubText())
-        .fontSize(16)
-        .fontColor('#FFD54F')
+          Text(this.getSeverityLabel())
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#FFD9D9')
 
-      Text(this.getInstruction())
-        .fontSize(this.profileName === 'Hearing' ? 22 : 18)
-        .fontWeight(this.profileName === 'Hearing' ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor('#EEEEEE')
-        .textAlign(TextAlign.Center)
-        .margin(12)
+          Text(this.getSubText())
+            .fontSize(15)
+            .fontColor('#FFE4A3')
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor(this.cardBg)
+        .borderRadius(16)
 
-      Button('SEND SOS')
-        .width('85%')
-        .height(60)
-        .fontSize(22)
-        .backgroundColor('#C62828')
-        .fontColor(Color.White)
-        .borderRadius(18)
-        .onClick(() => this.onSOS())
+        Text(this.getInstruction())
+          .width('100%')
+          .fontSize(this.profileName === 'Hearing' ? 22 : 19)
+          .fontWeight(this.profileName === 'Hearing' ? FontWeight.Bold : FontWeight.Medium)
+          .fontColor('#F7FBFF')
+          .textAlign(TextAlign.Start)
+          .lineHeight(26)
 
-      Button('Back')
-        .width('60%')
-        .height(48)
-        .fontSize(18)
-        .backgroundColor('#555555')
-        .fontColor(Color.White)
-        .borderRadius(14)
-        .onClick(() => this.onBack())
+        Column({ space: 4 }) {
+          Text('Recommended Action')
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFF2C2')
+
+          Text('1. Move to shelter immediately')
+            .fontSize(15)
+            .fontColor('#E7EEF9')
+          Text('2. Keep watch on wrist for live updates')
+            .fontSize(15)
+            .fontColor('#E7EEF9')
+          Text('3. Tap SOS if support is required')
+            .fontSize(15)
+            .fontColor('#E7EEF9')
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor('#233248')
+        .borderRadius(16)
+
+        Button('SEND SOS')
+          .width('90%')
+          .height(62)
+          .fontSize(24)
+          .fontWeight(FontWeight.Bold)
+          .backgroundColor('#D32F2F')
+          .fontColor(Color.White)
+          .borderRadius(20)
+          .onClick(() => this.onSOS())
+
+        Button('BACK TO DASHBOARD')
+          .width('90%')
+          .height(52)
+          .fontSize(17)
+          .backgroundColor('#546E7A')
+          .fontColor(Color.White)
+          .borderRadius(16)
+          .onClick(() => this.onBack())
+      }
+      .width('100%')
+      .padding(14)
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(this.getBgColor())
-    .padding(18)
+    .backgroundColor(this.profileName === 'Hearing' ? '#4A1111' : (this.profileName === 'Speech' ? '#0E223E' : (this.profileName === 'Mobility' ? '#1B263B' : this.dangerBg)))
   }
 }
