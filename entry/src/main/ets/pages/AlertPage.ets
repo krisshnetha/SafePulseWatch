@@ -5,9 +5,6 @@ export struct AlertPage {
   alertInstruction: string = 'Evacuate immediately.'
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
-  private readonly dangerBg: string = '#2A0F1A'
-  private readonly cardBg: string = '#3A1725'
-  private readonly accent: string = '#FF6E6E'
 
   private getModeHint(): string {
     if (this.profileName === 'Blind') {
@@ -25,61 +22,59 @@ export struct AlertPage {
     return 'Calm step-by-step mode active'
   }
 
-  private getSeverityLabel(): string {
-    if (this.alertType.includes('FIRE')) {
-      return 'Severity: Extreme'
-    }
-    if (this.alertType.includes('FLOOD') || this.alertType.includes('RAIN')) {
-      return 'Severity: Severe'
-    }
-    return 'Severity: Moderate'
-  }
-
   build() {
-    Column({ space: 16 }) {
+    Column({ space: 18 }) {
       Text('EMERGENCY ALERT')
-        .fontSize(26)
+        .fontSize(30)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#FF5252')
+        .fontColor('#FF6B5F')
 
       Text(this.alertType)
-        .fontSize(22)
+        .fontSize(24)
+        .fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
 
-      Text(this.getSubText())
+      Text(this.getModeHint())
         .fontSize(16)
-        .fontColor('#FFD54F')
+        .fontColor('#FFD36B')
 
-      Text(this.getInstruction())
-        .fontSize(this.profileName === 'Hearing' ? 22 : 18)
-        .fontWeight(this.profileName === 'Hearing' ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor('#EEEEEE')
+      Text(this.alertInstruction)
+        .fontSize(this.profileName === 'Deaf' ? 24 : 18)
+        .fontWeight(this.profileName === 'Deaf' ? FontWeight.Bold : FontWeight.Normal)
         .textAlign(TextAlign.Center)
-        .margin(12)
-
-      Button('SEND SOS')
-        .width('85%')
-        .height(60)
-        .fontSize(22)
-        .backgroundColor('#C62828')
         .fontColor(Color.White)
-        .borderRadius(18)
-        .onClick(() => this.onSOS())
+        .margin({ left: 18, right: 18 })
 
-      Button('Back')
-        .width('60%')
-        .height(48)
-        .fontSize(18)
-        .backgroundColor('#555555')
-        .fontColor(Color.White)
-        .borderRadius(14)
-        .onClick(() => this.onBack())
+      if (this.profileName === 'Blind') {
+        Text('🔊 Voice guidance: Exit is ahead.')
+          .fontSize(16)
+          .fontColor('#8FD3FF')
+      }
+
+      Row({ space: 12 }) {
+        Button('SEND SOS')
+          .layoutWeight(1)
+          .height(56)
+          .backgroundColor('#E13333')
+          .fontColor(Color.White)
+          .borderRadius(18)
+          .onClick(() => this.onSOS())
+
+        Button('BACK')
+          .layoutWeight(1)
+          .height(56)
+          .backgroundColor('#1A2740')
+          .fontColor(Color.White)
+          .borderRadius(18)
+          .onClick(() => this.onBack())
+      }
+      .width('100%')
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .backgroundColor(this.getBgColor())
-    .padding(18)
+    .padding(20)
+    .backgroundColor('#06101F')
   }
 }

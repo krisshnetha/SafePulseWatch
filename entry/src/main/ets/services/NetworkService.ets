@@ -40,7 +40,7 @@ export interface SosStats {
 }
 
 export class NetworkService {
-  static BASE_URL: string = 'http://10.0.2.2:3000'
+  static BASE_URL: string = 'http://192.168.229.136:3000'
 
   static async fetchCurrentAlert(): Promise<AlertItem | null> {
     try {

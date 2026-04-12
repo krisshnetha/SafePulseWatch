@@ -4,10 +4,10 @@ export class AlertService {
   }
 
   static getAlertMessage(profile: string): string {
-    if (profile === 'Vision') {
+    if (profile === 'Blind') {
       return 'Audio and vibration guidance enabled.'
     }
-    if (profile === 'Hearing') {
+    if (profile === 'Deaf') {
       return 'Visual emergency mode active.'
     }
     if (profile === 'Speech') {

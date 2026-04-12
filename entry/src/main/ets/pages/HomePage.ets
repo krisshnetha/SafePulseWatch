@@ -10,44 +10,109 @@ export struct HomePage {
   onNavigate: () => void = () => {}
   onSOSLog: () => void = () => {}
   onCheckBackend: () => void = () => {}
-  onSOS: () => void = () => {}
-  onNavigate: () => void = () => {}
 
-  build() {
-    Column({ space: 14 }) {
-      Text('SAFEPULSE')
-        .fontSize(28)
+  @State currentAlert: AlertItem | null = null
+
+  aboutToAppear() {
+    this.loadAlert()
+  }
+
+  async loadAlert() {
+    this.currentAlert = await NetworkService.fetchCurrentAlert()
+  }
+
+  private card(title: string, subtitle: string, color: string, onTap: () => void) {
+    Column({ space: 8 }) {
+      Text(title)
+        .fontSize(20)
         .fontWeight(FontWeight.Bold)
         .fontColor(Color.White)
-
-      Text('Emergency Support Watch')
-        .fontSize(16)
-        .fontColor('#CCCCCC')
-      Text('Source: Local demo backend')
+      Text(subtitle)
         .fontSize(14)
-        .fontColor('#AAAAAA')
+        .fontColor('#9FB0C9')
+    }
+    .width('45%')
+    .height(120)
+    .padding(16)
+    .borderRadius(20)
+    .backgroundColor('#0E1A2F')
+    .border({
+      width: 1,
+      color: color
+    })
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Start)
+    .onClick(() => onTap())
+  }
 
+  build() {
+    Scroll() {
+      Column({ space: 18 }) {
+        Column({ space: 10 }) {
+          Text('SafePulse')
+            .fontSize(34)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
 
-      Text('Profile: ' + this.profileName)
-        .fontSize(18)
-        .fontColor('#FFA726')
+          Text('Adaptive emergency alerts for every accessibility need. Real-time SOS. GPS navigation to safety.')
+            .fontSize(18)
+            .fontColor('#B9C8DF')
 
-      Text('System Ready • Demo Connected')
-        .fontSize(18)
-        .fontColor('#4CAF50')
-        .margin({ top: 4, bottom: 12 })
+          Text('Profile: ' + this.profileName + (this.userName !== '' ? ' • ' + this.userName : ''))
+            .fontSize(16)
+            .fontColor('#FF8A80')
+        }
+        .width('100%')
+        .padding(20)
+        .borderRadius(20)
+        .backgroundColor('#0E1A34')
 
-      BigButton({ text: 'Select Profile', bgColor: '#1565C0', onTap: this.onProfile })
-      BigButton({ text: 'Simulate Alert', bgColor: '#EF6C00', onTap: this.onAlert })
-      BigButton({ text: 'Check Backend Alert', bgColor: '#7B1FA2', onTap: this.onCheckBackend })
-      BigButton({ text: 'SOS', bgColor: '#C62828', onTap: this.onSOS })
-      BigButton({ text: 'Navigate', bgColor: '#2E7D32', onTap: this.onNavigate })
+        if (this.currentAlert !== null) {
+          Row() {
+            Column({ space: 4 }) {
+              Text(this.currentAlert!.type + ' ALERT')
+                .fontSize(24)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(Color.White)
+              Text(this.currentAlert!.instruction)
+                .fontSize(16)
+                .fontColor(Color.White)
+            }
+            .layoutWeight(1)
+
+            Button('VIEW')
+              .backgroundColor('#FFB380')
+              .fontColor(Color.White)
+              .borderRadius(16)
+              .onClick(() => this.onCheckBackend())
+          }
+          .width('100%')
+          .padding(20)
+          .borderRadius(20)
+          .backgroundColor('#FF5A1F')
+        }
+
+        Row({ space: 14 }) {
+          this.card('My Profile', 'Set up now', '#3F7BFF', this.onProfile)
+          this.card('Alert Control', 'Trigger & manage', '#FF3D3D', this.onAdmin)
+        }
+
+        Row({ space: 14 }) {
+          this.card('Watch View', 'Adaptive display', '#8A3FFC', this.onWatch)
+          this.card('Navigation', 'Safe exits', '#21C45D', this.onNavigate)
+        }
+
+        Row({ space: 14 }) {
+          this.card('SOS Events', 'Live dashboard', '#FF8A00', this.onSOSLog)
+          this.card('Refresh Alert', 'Check backend', '#E0B000', this.onCheckBackend)
+        }
+      }
+      .width('100%')
+      .padding(20)
+      .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor('#0B1020')
-    .padding(16)
+    .backgroundColor('#06101F')
   }
 }

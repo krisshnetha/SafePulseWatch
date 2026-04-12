@@ -1,8 +1,8 @@
 export class HapticService {
   static trigger(profile: string): void {
-    if (profile === 'Vision') {
+    if (profile === 'Blind') {
       console.info('HAPTIC: strong long-short-long pattern')
-    } else if (profile === 'Hearing') {
+    } else if (profile === 'Deaf') {
       console.info('HAPTIC: strong continuous vibration')
     } else if (profile === 'Speech') {
       console.info('HAPTIC: short confirmation pulse')
