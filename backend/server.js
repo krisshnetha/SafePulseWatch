@@ -2,10 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const crypto = require("crypto");
+const { NotificationService } = require("./services/NotificationService");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DEMO_USER_ID = "demo-user-1";
+const notificationService = new NotificationService();
 
 app.use(cors());
 app.use(express.json());
@@ -46,8 +48,14 @@ const typeToTitle = {
 
 const typeToMessage = {
   fire: "Evacuate immediately. Smoke or fire risk detected.",
-  gas: "Possible gas leak detected. Leave the area and avoid sparks.",
-  evacuation: "Evacuation required. Follow the nearest safe route.",
+  gas: "Gas leak detected. Leave the area immediately and avoid sparks.",
+  evacuation: "Emergency evacuation in progress. Proceed to the nearest safe exit.",
+};
+
+const typeToSeverity = {
+  fire: "high",
+  gas: "critical",
+  evacuation: "high",
 };
 
 function normalizeEmergencyType(rawType = "") {
@@ -86,30 +94,24 @@ function ensureSinglePrimary() {
   }
 }
 
-function buildSosMessagePayload({ source = "watch", message, location, emergencyType }) {
-  const outgoingMessage =
-    message ||
-    `SOS from ${state.userName || state.userId}. Emergency: ${emergencyType || "unknown"}. Location: ${location || "not-provided"}.`;
-
-  const notifiedContacts = state.contacts.map((contact) => {
-    const delivery = {
-      id: id("delivery"),
-      contactId: contact.id,
-      contactName: contact.name,
-      contactPhone: contact.phone,
-      relation: contact.relation,
-      primary: contact.primary,
-      channel: "sms",
-      status: "queued",
-      attemptedAt: nowIso(),
-      message: outgoingMessage,
-      source,
+function parseLocation(locationPayload) {
+  if (!locationPayload) return { latitude: null, longitude: null, raw: null };
+  if (typeof locationPayload === "object") {
+    return {
+      latitude: locationPayload.latitude ?? null,
+      longitude: locationPayload.longitude ?? null,
+      raw: locationPayload,
     };
-    state.deliveryLogs.unshift(delivery);
-    return delivery;
-  });
-
-  return { outgoingMessage, notifiedContacts };
+  }
+  if (typeof locationPayload === "string" && locationPayload.includes(",")) {
+    const [lat, lng] = locationPayload.split(",").map((value) => Number(value.trim()));
+    return {
+      latitude: Number.isFinite(lat) ? lat : null,
+      longitude: Number.isFinite(lng) ? lng : null,
+      raw: locationPayload,
+    };
+  }
+  return { latitude: null, longitude: null, raw: locationPayload };
 }
 
 app.get("/health", (_req, res) => {
@@ -191,12 +193,12 @@ app.delete("/api/contacts/:id", (req, res) => {
 });
 
 app.post("/api/emergency/trigger", (req, res) => {
-  const { type, severity = "high", title, message } = req.body || {};
+  const { type, severity, title, message } = req.body || {};
   const normalizedType = normalizeEmergencyType(type);
   state.activeEmergency = {
     id: id("e"),
     type: normalizedType,
-    severity,
+    severity: severity || typeToSeverity[normalizedType],
     title: title || typeToTitle[normalizedType],
     message: message || typeToMessage[normalizedType],
     status: "active",
@@ -236,21 +238,34 @@ app.post("/api/sos", (req, res) => {
     state.userName = userName.trim();
   }
 
-  const { outgoingMessage, notifiedContacts } = buildSosMessagePayload({
+  const locationPayload = parseLocation(location);
+  const resolvedEmergencyType = normalizeEmergencyType(emergencyType);
+  const outgoingMessage =
+    message ||
+    notificationService.createEmergencyMessage({
+      userId: state.userId,
+      emergencyType: resolvedEmergencyType,
+      location: locationPayload,
+    });
+
+  const notifiedContacts = notificationService.dispatchToContacts({
+    contacts: state.contacts,
+    message: outgoingMessage,
     source,
-    message,
-    location,
-    emergencyType,
+    emergencyType: resolvedEmergencyType,
+    location: locationPayload,
   });
+
+  notifiedContacts.forEach((delivery) => state.deliveryLogs.unshift(delivery));
 
   const sosEvent = {
     id: id("sos"),
     sent: true,
     time: nowIso(),
-    location,
+    location: locationPayload,
     message: outgoingMessage,
     source,
-    emergencyType,
+    emergencyType: resolvedEmergencyType,
     notifiedContacts,
     status: "sent",
   };
@@ -267,9 +282,15 @@ app.post("/api/sos", (req, res) => {
 
   return res.status(201).json({
     success: true,
+    sent: true,
+    timestamp: sosEvent.time,
+    emergencyType: resolvedEmergencyType,
+    location: locationPayload,
     sos: state.sos,
-    notifiedContacts: state.sos.notifiedContacts,
-    deliveryCount: state.sos.notifiedContacts.length,
+    latestEvent: sosEvent,
+    notifiedContacts,
+    deliveryLog: notifiedContacts,
+    deliveryCount: notifiedContacts.length,
   });
 });
 
@@ -355,6 +376,11 @@ app.get("/api/logs", (_req, res) =>
     },
   })
 );
+
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled backend error:", err);
+  res.status(500).json({ success: false, message: "Internal server error", timestamp: nowIso() });
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`SafePulse sync backend running on port ${PORT}`);

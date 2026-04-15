@@ -31,7 +31,7 @@ struct Index {
     this.pullSharedState()
     this.syncTimer = setInterval(() => {
       this.pullSharedState()
-    }, 4000)
+    }, 3000)
   }
 
   aboutToDisappear(): void {
@@ -47,6 +47,9 @@ struct Index {
     if (alert) {
       this.currentAlertType = alert.type
       this.currentAlertInstruction = alert.instruction
+    } else {
+      this.currentAlertType = 'NO ACTIVE ALERT'
+      this.currentAlertInstruction = 'No active backend emergency at the moment.'
     }
   }
 
