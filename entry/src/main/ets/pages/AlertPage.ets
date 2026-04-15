@@ -5,6 +5,7 @@ export struct AlertPage {
   alertInstruction: string = 'Evacuate immediately.'
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
+  onSafe: () => void = () => {}
 
   private getModeHint(): string {
     if (this.profileName === 'Blind') {
@@ -59,6 +60,18 @@ export struct AlertPage {
           .fontColor(Color.White)
           .borderRadius(18)
           .onClick(() => this.onSOS())
+
+        Button('MARK SAFE')
+          .layoutWeight(1)
+          .height(56)
+          .backgroundColor('#1B8D49')
+          .fontColor(Color.White)
+          .borderRadius(18)
+          .onClick(() => this.onSafe())
+      }
+      .width('100%')
+
+      Row({ space: 12 }) {
 
         Button('BACK')
           .layoutWeight(1)

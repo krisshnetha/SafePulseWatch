@@ -24,10 +24,30 @@ struct Index {
   @State locationText: string = 'SOS sent successfully'
   @State monitoringEnabled: boolean = true
   @State monitorEventText: string = 'No suspicious audio pattern detected yet'
+  syncTimer: number = -1
 
   aboutToAppear(): void {
     this.monitoringEnabled = GuardianAudioService.isMonitoringEnabled()
-    this.loadInitialProfile()
+    this.pullSharedState()
+    this.syncTimer = setInterval(() => {
+      this.pullSharedState()
+    }, 4000)
+  }
+
+  aboutToDisappear(): void {
+    if (this.syncTimer !== -1) {
+      clearInterval(this.syncTimer)
+      this.syncTimer = -1
+    }
+  }
+
+  async pullSharedState(): Promise<void> {
+    await this.loadInitialProfile()
+    const alert = await NetworkService.fetchCurrentAlert()
+    if (alert) {
+      this.currentAlertType = alert.type
+      this.currentAlertInstruction = alert.instruction
+    }
   }
 
   async loadInitialProfile(): Promise<void> {
@@ -187,6 +207,10 @@ struct Index {
           onSOS: () => {
             HapticService.trigger(this.selectedProfile)
             this.sendSOS('SOS triggered from emergency alert screen.')
+          },
+          onSafe: async () => {
+            await NetworkService.markSafe()
+            this.currentPage = 'home'
           }
         })
       } else if (this.currentPage === 'sos') {

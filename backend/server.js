@@ -1,240 +1,361 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DEMO_USER_ID = "demo-user-1";
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
-let currentProfile = {
-  userId: 'demo-user',
-  name: '',
-  profile: '',
-  contactName: 'Demo Caregiver',
-  contactNumber: '+6500000000',
-  updatedAt: new Date().toISOString()
+const nowIso = () => new Date().toISOString();
+const id = (prefix) => `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+
+const defaultContacts = [
+  { id: "c1", name: "Ananya", phone: "+6591234567", relation: "Sister", primary: true },
+  { id: "c2", name: "Ravi", phone: "+6598765432", relation: "Father", primary: false },
+];
+
+const state = {
+  userId: DEMO_USER_ID,
+  userName: "Demo User",
+  profile: "vision",
+  contacts: [...defaultContacts],
+  activeEmergency: null,
+  sos: {
+    sent: false,
+    time: null,
+    location: null,
+    message: null,
+    source: null,
+    notifiedContacts: [],
+  },
+  history: [],
+  sosLogs: [],
+  deliveryLogs: [],
 };
 
-let currentAlert = null;
-let alertHistory = [];
-let sosLogs = [];
-let smsLogs = [];
+const typeToTitle = {
+  fire: "Fire Alert",
+  gas: "Gas Leak Alert",
+  evacuation: "Evacuation Alert",
+};
 
-function createInstruction(type) {
-  switch (type) {
-    case 'FIRE':
-      return 'Evacuate immediately via nearest exit. Do not use elevators.';
-    case 'EARTHQUAKE':
-      return 'Drop, Cover, Hold On. Move away from windows.';
-    case 'FLOOD':
-      return 'Move to higher ground and avoid low-lying areas.';
-    case 'EVACUATION':
-      return 'Proceed to Exit B and follow staff instructions.';
-    case 'MEDICAL':
-      return 'Medical emergency nearby. Keep the route clear.';
-    case 'SECURITY':
-      return 'Security incident reported. Remain calm and await guidance.';
-    default:
-      return 'Follow emergency instructions carefully.';
+const typeToMessage = {
+  fire: "Evacuate immediately. Smoke or fire risk detected.",
+  gas: "Possible gas leak detected. Leave the area and avoid sparks.",
+  evacuation: "Evacuation required. Follow the nearest safe route.",
+};
+
+function normalizeEmergencyType(rawType = "") {
+  const input = String(rawType).toLowerCase();
+  if (input.includes("gas")) return "gas";
+  if (input.includes("evac")) return "evacuation";
+  return "fire";
+}
+
+function serializeState() {
+  return {
+    userId: state.userId,
+    profile: state.profile,
+    contacts: state.contacts,
+    activeEmergency: state.activeEmergency,
+    sos: state.sos,
+    history: state.history,
+  };
+}
+
+function ensureSinglePrimary() {
+  if (state.contacts.length === 0) return;
+  const hasPrimary = state.contacts.some((c) => c.primary);
+  if (!hasPrimary) {
+    state.contacts[0].primary = true;
+  } else {
+    let foundPrimary = false;
+    state.contacts = state.contacts.map((c) => {
+      if (!c.primary) return c;
+      if (!foundPrimary) {
+        foundPrimary = true;
+        return c;
+      }
+      return { ...c, primary: false };
+    });
   }
 }
 
-function buildStats() {
-  return {
-    total: sosLogs.length,
-    active: sosLogs.filter((log) => log.status === 'ACTIVE').length,
-    acknowledged: sosLogs.filter((log) => log.status === 'ACKNOWLEDGED').length,
-    resolved: sosLogs.filter((log) => log.status === 'RESOLVED').length
-  };
+function buildSosMessagePayload({ source = "watch", message, location, emergencyType }) {
+  const outgoingMessage =
+    message ||
+    `SOS from ${state.userName || state.userId}. Emergency: ${emergencyType || "unknown"}. Location: ${location || "not-provided"}.`;
+
+  const notifiedContacts = state.contacts.map((contact) => {
+    const delivery = {
+      id: id("delivery"),
+      contactId: contact.id,
+      contactName: contact.name,
+      contactPhone: contact.phone,
+      relation: contact.relation,
+      primary: contact.primary,
+      channel: "sms",
+      status: "queued",
+      attemptedAt: nowIso(),
+      message: outgoingMessage,
+      source,
+    };
+    state.deliveryLogs.unshift(delivery);
+    return delivery;
+  });
+
+  return { outgoingMessage, notifiedContacts };
 }
 
-app.get('/api/health', (_req, res) => {
-  res.json({ success: true, message: 'SafePulse backend is running' });
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, service: "safepulse-sync-backend", time: nowIso() });
 });
 
-app.get('/api/profile', (_req, res) => {
-  res.json({ success: true, profile: currentProfile });
+app.get("/api/sync/state", (_req, res) => {
+  res.json({ success: true, state: serializeState() });
 });
 
-app.post('/api/profile', (req, res) => {
-  const { userId, name, profile, contactName, contactNumber } = req.body || {};
+app.put("/api/profile", (req, res) => {
+  const { userId, profile, userName } = req.body || {};
+  if (userId && userId !== DEMO_USER_ID) {
+    return res.status(400).json({ success: false, message: "Only demo-user-1 is supported in MVP" });
+  }
+  if (!profile || typeof profile !== "string") {
+    return res.status(400).json({ success: false, message: "profile is required" });
+  }
+  state.profile = profile;
+  if (typeof userName === "string") state.userName = userName;
+  return res.json({ success: true, profile: state.profile, userName: state.userName });
+});
 
-  currentProfile = {
-    userId: userId || 'demo-user',
-    name: name || '',
-    profile: profile || '',
-    contactName: contactName || 'Demo Caregiver',
-    contactNumber: contactNumber || '+6500000000',
-    updatedAt: new Date().toISOString()
+app.get("/api/contacts", (_req, res) => {
+  res.json({ success: true, contacts: state.contacts });
+});
+
+app.post("/api/contacts", (req, res) => {
+  const { name, phone, relation, primary = false } = req.body || {};
+  if (!name || !phone || !relation) {
+    return res.status(400).json({ success: false, message: "name, phone, relation are required" });
+  }
+  const contact = {
+    id: id("c"),
+    name: String(name),
+    phone: String(phone),
+    relation: String(relation),
+    primary: !!primary || state.contacts.length === 0,
+  };
+  if (contact.primary) {
+    state.contacts = state.contacts.map((c) => ({ ...c, primary: false }));
+  }
+  state.contacts.unshift(contact);
+  ensureSinglePrimary();
+  return res.status(201).json({ success: true, contact, contacts: state.contacts });
+});
+
+app.put("/api/contacts/:id", (req, res) => {
+  const { id: contactId } = req.params;
+  const { name, phone, relation, primary } = req.body || {};
+  const idx = state.contacts.findIndex((c) => c.id === contactId);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: "Contact not found" });
+  }
+  const updated = {
+    ...state.contacts[idx],
+    ...(typeof name === "string" ? { name } : {}),
+    ...(typeof phone === "string" ? { phone } : {}),
+    ...(typeof relation === "string" ? { relation } : {}),
+    ...(typeof primary === "boolean" ? { primary } : {}),
+  };
+  state.contacts[idx] = updated;
+  if (updated.primary) {
+    state.contacts = state.contacts.map((c) => (c.id === updated.id ? c : { ...c, primary: false }));
+  }
+  ensureSinglePrimary();
+  return res.json({ success: true, contact: updated, contacts: state.contacts });
+});
+
+app.delete("/api/contacts/:id", (req, res) => {
+  const { id: contactId } = req.params;
+  const idx = state.contacts.findIndex((c) => c.id === contactId);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: "Contact not found" });
+  }
+  state.contacts.splice(idx, 1);
+  ensureSinglePrimary();
+  return res.json({ success: true, contacts: state.contacts });
+});
+
+app.post("/api/emergency/trigger", (req, res) => {
+  const { type, severity = "high", title, message } = req.body || {};
+  const normalizedType = normalizeEmergencyType(type);
+  state.activeEmergency = {
+    id: id("e"),
+    type: normalizedType,
+    severity,
+    title: title || typeToTitle[normalizedType],
+    message: message || typeToMessage[normalizedType],
+    status: "active",
+    createdAt: nowIso(),
+  };
+  return res.status(201).json({ success: true, activeEmergency: state.activeEmergency });
+});
+
+app.post("/api/emergency/resolve", (req, res) => {
+  if (!state.activeEmergency) {
+    return res.json({ success: true, message: "No active emergency", activeEmergency: null, history: state.history });
+  }
+  const resolved = {
+    ...state.activeEmergency,
+    status: "resolved",
+    resolvedAt: nowIso(),
+  };
+  state.history.unshift(resolved);
+  state.activeEmergency = null;
+  return res.json({ success: true, resolved, history: state.history });
+});
+
+app.get("/api/history", (_req, res) => {
+  res.json({ success: true, history: state.history });
+});
+
+app.post("/api/sos", (req, res) => {
+  const {
+    source = "watch",
+    message,
+    location = null,
+    emergencyType = state.activeEmergency?.type || "unknown",
+    userName,
+  } = req.body || {};
+
+  if (typeof userName === "string" && userName.trim()) {
+    state.userName = userName.trim();
+  }
+
+  const { outgoingMessage, notifiedContacts } = buildSosMessagePayload({
+    source,
+    message,
+    location,
+    emergencyType,
+  });
+
+  const sosEvent = {
+    id: id("sos"),
+    sent: true,
+    time: nowIso(),
+    location,
+    message: outgoingMessage,
+    source,
+    emergencyType,
+    notifiedContacts,
+    status: "sent",
   };
 
-  res.json({
+  state.sos = {
+    sent: true,
+    time: sosEvent.time,
+    location: sosEvent.location,
+    message: sosEvent.message,
+    source: sosEvent.source,
+    notifiedContacts: sosEvent.notifiedContacts,
+  };
+  state.sosLogs.unshift(sosEvent);
+
+  return res.status(201).json({
     success: true,
-    message: 'Profile saved successfully',
-    profile: currentProfile
+    sos: state.sos,
+    notifiedContacts: state.sos.notifiedContacts,
+    deliveryCount: state.sos.notifiedContacts.length,
   });
 });
 
-app.get('/api/alert', (_req, res) => {
+app.get("/api/sos/latest", (_req, res) => {
   res.json({
     success: true,
-    alert: currentAlert
+    sos: state.sos,
+    latestEvent: state.sosLogs[0] || null,
   });
 });
 
-app.get('/api/alerts', (_req, res) => {
-  res.json({
-    success: true,
-    alerts: alertHistory
-  });
+app.post("/api/safe", (_req, res) => {
+  if (state.activeEmergency) {
+    const resolved = { ...state.activeEmergency, status: "resolved", resolvedAt: nowIso(), resolvedBy: "watch-safe" };
+    state.history.unshift(resolved);
+    state.activeEmergency = null;
+  }
+  return res.json({ success: true, activeEmergency: null, history: state.history });
 });
 
-app.post('/api/trigger-alert', (req, res) => {
-  const { type, severity, instruction, locationName } = req.body || {};
-
-  const alert = {
-    id: Date.now().toString(),
-    type: type || 'FIRE',
-    severity: severity || 'HIGH',
-    instruction: instruction || createInstruction(type || 'FIRE'),
-    locationName: locationName || 'Main Building',
-    timestamp: new Date().toISOString(),
+// Compatibility aliases for existing demo flows.
+app.get("/api/health", (_req, res) => res.json({ success: true, message: "SafePulse backend is running" }));
+app.get("/api/profile", (_req, res) =>
+  res.json({
+    success: true,
+    profile: {
+      userId: state.userId,
+      name: state.userName,
+      profile: state.profile,
+      updatedAt: nowIso(),
+    },
+  })
+);
+app.post("/api/profile", (req, res) => {
+  const { name, profile } = req.body || {};
+  if (typeof name === "string") state.userName = name;
+  if (typeof profile === "string") state.profile = profile;
+  return res.json({ success: true, profile: { userId: state.userId, name: state.userName, profile: state.profile, updatedAt: nowIso() } });
+});
+app.get("/api/alert", (_req, res) => res.json({ success: true, alert: state.activeEmergency }));
+app.get("/api/alerts", (_req, res) => res.json({ success: true, alerts: state.history }));
+app.post("/api/trigger-alert", (req, res) => {
+  const { type, severity, instruction } = req.body || {};
+  const normalizedType = normalizeEmergencyType(type);
+  state.activeEmergency = {
+    id: id("e"),
+    type: type || normalizedType.toUpperCase(),
+    severity: severity || "HIGH",
+    instruction: instruction || typeToMessage[normalizedType],
+    locationName: "Demo Building",
+    timestamp: nowIso(),
     active: true,
     acknowledged: false,
-    resolved: false
+    resolved: false,
+    status: "active",
   };
-
-  currentAlert = alert;
-  alertHistory.unshift(alert);
-
+  return res.json({ success: true, alert: state.activeEmergency });
+});
+app.post("/api/clear-alerts", (_req, res) => {
+  state.activeEmergency = null;
+  return res.json({ success: true });
+});
+app.get("/api/logs", (_req, res) =>
   res.json({
     success: true,
-    message: 'Alert triggered successfully',
-    alert
-  });
-});
+    logs: state.sosLogs.map((log) => ({
+      id: log.id,
+      userName: state.userName,
+      profile: state.profile,
+      alertType: log.emergencyType,
+      latitude: 1.3521,
+      longitude: 103.8198,
+      message: log.message,
+      time: log.time,
+      status: "ACTIVE",
+      source: log.source,
+    })),
+    stats: {
+      total: state.sosLogs.length,
+      active: state.sosLogs.length,
+      acknowledged: 0,
+      resolved: 0,
+    },
+  })
+);
 
-app.post('/api/clear-alert', (_req, res) => {
-  currentAlert = null;
-  res.json({
-    success: true,
-    message: 'Current alert cleared'
-  });
-});
-
-app.post('/api/clear-alerts', (_req, res) => {
-  currentAlert = null;
-  alertHistory = [];
-  res.json({
-    success: true,
-    message: 'All alerts cleared'
-  });
-});
-
-app.post('/api/sos', (req, res) => {
-  const { userName, profile, alertType, latitude, longitude, message, source } = req.body || {};
-
-  const log = {
-    id: Date.now().toString(),
-    userName: userName || currentProfile.name || 'Unknown User',
-    profile: profile || currentProfile.profile || 'Unknown',
-    alertType: alertType || (currentAlert ? currentAlert.type : 'NONE'),
-    latitude: latitude ?? 1.3521,
-    longitude: longitude ?? 103.8198,
-    message: message || 'I need emergency assistance.',
-    time: new Date().toISOString(),
-    status: 'ACTIVE',
-    source: source || 'watch'
-  };
-
-  sosLogs.unshift(log);
-
-  const smsPayload = {
-    id: 'sms-' + Date.now().toString(),
-    time: new Date().toISOString(),
-    contactNumber: currentProfile.contactNumber,
-    contactName: currentProfile.contactName,
-    message: `SOS from ${log.userName} (${log.profile}) at (${log.latitude}, ${log.longitude})`,
-    linkedSosId: log.id,
-    source: 'auto-from-sos'
-  };
-
-  smsLogs.unshift(smsPayload);
-
-  res.json({
-    success: true,
-    message: 'SOS logged successfully',
-    received: log,
-    smsNotification: smsPayload
-  });
-});
-
-app.post('/api/sms-notify', (req, res) => {
-  const { contactNumber, contactName, location, message, profile, source } = req.body || {};
-
-  const payload = {
-    id: 'sms-' + Date.now().toString(),
-    time: new Date().toISOString(),
-    contactNumber: contactNumber || currentProfile.contactNumber,
-    contactName: contactName || currentProfile.contactName,
-    location: location || '1.3521,103.8198',
-    profile: profile || currentProfile.profile,
-    message: message || 'SafePulseWatch test caregiver notification',
-    source: source || 'watch'
-  };
-
-  smsLogs.unshift(payload);
-
-  res.json({
-    success: true,
-    message: 'SMS notification queued successfully',
-    queued: payload
-  });
-});
-
-app.get('/api/sms-logs', (_req, res) => {
-  res.json({
-    success: true,
-    count: smsLogs.length,
-    logs: smsLogs
-  });
-});
-
-app.get('/api/logs', (_req, res) => {
-  res.json({
-    success: true,
-    stats: buildStats(),
-    logs: sosLogs
-  });
-});
-
-app.patch('/api/logs/:id/acknowledge', (req, res) => {
-  const { id } = req.params;
-  const log = sosLogs.find((item) => item.id === id);
-
-  if (!log) {
-    return res.status(404).json({ success: false, message: 'Log not found' });
-  }
-
-  log.status = 'ACKNOWLEDGED';
-  res.json({ success: true, log, stats: buildStats() });
-});
-
-app.patch('/api/logs/:id/resolve', (req, res) => {
-  const { id } = req.params;
-  const log = sosLogs.find((item) => item.id === id);
-
-  if (!log) {
-    return res.status(404).json({ success: false, message: 'Log not found' });
-  }
-
-  log.status = 'RESOLVED';
-  res.json({ success: true, log, stats: buildStats() });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`SafePulse sync backend running on port ${PORT}`);
 });
