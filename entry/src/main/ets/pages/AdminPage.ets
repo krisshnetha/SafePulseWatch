@@ -2,91 +2,172 @@ import { NetworkService } from '../services/NetworkService'
 
 @Component
 export struct AdminPage {
+  onBack: () => void = () => {}
 
   @State statusMessage: string = 'Ready'
+  @State selectedSeverity: string = 'HIGH'
 
-  async trigger(type: string) {
-    const success = await NetworkService.triggerAlert(
+  async triggerAlert(type: string) {
+    const ok: boolean = await NetworkService.triggerAlert(
       type,
-      'HIGH',
+      this.selectedSeverity,
       'Evacuate immediately via nearest exit',
       'Demo Building'
     )
-
-    this.statusMessage = success ? `${type} alert triggered` : 'Failed to trigger alert'
+    this.statusMessage = ok ? type + ' alert triggered' : 'Trigger failed'
   }
 
-  async clearAll() {
+  async clearAlerts() {
     await NetworkService.clearAllAlerts()
     this.statusMessage = 'All alerts cleared'
   }
 
   build() {
-    Column({ space: 20 }) {
+    Scroll() {
+      Column({ space: 10 }) {
+        Blank().height(20)
 
-      // 🔴 Title
-      Text('SafePulse Control Panel')
-        .fontSize(22)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
+        Text('Admin')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(Color.White)
 
-      Text('Trigger emergency scenarios for demo')
-        .fontSize(14)
-        .fontColor('#B0C4DE')
+        Button('Back')
+          .width('100%')
+          .height(34)
+          .backgroundColor('#1A2740')
+          .fontColor(Color.White)
+          .borderRadius(16)
+          .onClick(() => {
+            this.onBack()
+          })
 
-      // 🚨 Alert Buttons
-      Column({ space: 12 }) {
-
-        this.alertButton('🔥 FIRE', '#E53935')
-        this.alertButton('🌊 FLOOD', '#1E88E5')
-        this.alertButton('🌎 EARTHQUAKE', '#FBC02D')
-        this.alertButton('🚑 MEDICAL', '#D81B60')
-        this.alertButton('🚨 SECURITY', '#546E7A')
-
-      }
-      .width('100%')
-
-      // 🧹 Clear Button
-      Button('Clear All Alerts')
-        .backgroundColor('#333')
-        .fontColor(Color.White)
-        .borderRadius(16)
-        .padding(12)
-        .onClick(() => this.clearAll())
-
-      // 📢 Status Box
-      Column() {
-        Text('Status')
-          .fontSize(14)
+        Text('Demo emergency control')
+          .fontSize(11)
           .fontColor('#B0C4DE')
 
-        Text(this.statusMessage)
-          .fontSize(16)
-          .fontColor(Color.White)
-      }
-      .width('100%')
-      .padding(16)
-      .backgroundColor('#0E1A2F')
-      .borderRadius(16)
+        Row({ space: 6 }) {
+          Text('LOW')
+            .fontSize(10)
+            .fontColor(Color.White)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(10)
+            .backgroundColor(this.selectedSeverity === 'LOW' ? '#E35B44' : '#23324D')
+            .onClick(() => {
+              this.selectedSeverity = 'LOW'
+            })
 
+          Text('HIGH')
+            .fontSize(10)
+            .fontColor(Color.White)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(10)
+            .backgroundColor(this.selectedSeverity === 'HIGH' ? '#E35B44' : '#23324D')
+            .onClick(() => {
+              this.selectedSeverity = 'HIGH'
+            })
+
+          Text('CRITICAL')
+            .fontSize(10)
+            .fontColor(Color.White)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(10)
+            .backgroundColor(this.selectedSeverity === 'CRITICAL' ? '#E35B44' : '#23324D')
+            .onClick(() => {
+              this.selectedSeverity = 'CRITICAL'
+            })
+        }
+
+        Button('FIRE')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#E53935')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.triggerAlert('FIRE')
+          })
+
+        Button('FLOOD')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#1E88E5')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.triggerAlert('FLOOD')
+          })
+
+        Button('QUAKE')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#F2B705')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.triggerAlert('QUAKE')
+          })
+
+        Button('MEDICAL')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#D81B60')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.triggerAlert('MEDICAL')
+          })
+
+        Button('SECURITY')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#546E7A')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.triggerAlert('SECURITY')
+          })
+
+        Button('Clear All')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#2A4F9B')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.clearAlerts()
+          })
+
+        Column({ space: 4 }) {
+          Text('STATUS')
+            .fontSize(10)
+            .fontColor('#B0C4DE')
+
+          Text(this.statusMessage)
+            .fontSize(11)
+            .fontColor(Color.White)
+            .maxLines(2)
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor('#0E1A2F')
+        .borderRadius(16)
+
+        Blank().height(36)
+      }
+      .padding({ left: 22, right: 22 })
+      .width('100%')
     }
-    .padding(20)
-    .backgroundColor('#071224')
     .width('100%')
     .height('100%')
-  }
-
-  // 🔥 Custom Button Component
-  alertButton(label: string, color: string) {
-    return Button(label)
-      .width('100%')
-      .backgroundColor(color)
-      .fontColor(Color.White)
-      .borderRadius(20)
-      .padding(16)
-      .onClick(() => {
-        const type = label.split(' ')[1]
-        this.trigger(type)
-      })
+    .backgroundColor('#071224')
   }
 }

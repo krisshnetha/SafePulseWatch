@@ -4,10 +4,10 @@ import { NetworkService, SosItem } from '../services/NetworkService'
 export struct SOSLogPage {
   onBack: () => void = () => {}
 
-  @State logs: Array<SosItem> = []
+  @State logs: SosItem[] = []
   @State selectedFilter: string = 'ALL'
   @State totalCount: number = 0
-  @State activeCount: number = 0
+  @State activeTotal: number = 0
   @State acknowledgedCount: number = 0
   @State resolvedCount: number = 0
 
@@ -17,31 +17,62 @@ export struct SOSLogPage {
 
   async loadLogs() {
     const data = await NetworkService.fetchSOSLogs()
-    this.logs = (data['logs'] as Array<SosItem>) || []
-
-    const stats = data['stats'] as Record<string, number>
-    if (stats) {
-      this.totalCount = stats['total'] || 0
-      this.activeCount = stats['active'] || 0
-      this.acknowledgedCount = stats['acknowledged'] || 0
-      this.resolvedCount = stats['resolved'] || 0
-    }
+    this.logs = data.logs
+    this.totalCount = data.stats.total
+    this.activeTotal = data.stats.active
+    this.acknowledgedCount = data.stats.acknowledged
+    this.resolvedCount = data.stats.resolved
   }
 
-  private getFilteredLogs(): Array<SosItem> {
+  private getFilteredLogs(): SosItem[] {
     if (this.selectedFilter === 'ALL') {
       return this.logs
     }
     return this.logs.filter((item: SosItem) => item.status === this.selectedFilter)
   }
 
-  private chip(label: string) {
+  @Builder
+  statCard(value: string, label: string, glow: string) {
+    Column({ space: 2 }) {
+      Text(value)
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+
+      Text(label)
+        .fontSize(9)
+        .fontColor('#BFD2F4')
+    }
+    .width('48%')
+    .padding(12)
+    .borderRadius(18)
+    .linearGradient({
+      angle: 135,
+      colors: [['#16315F', 0.0], ['#0C1830', 1.0]]
+    })
+    .shadow({
+      radius: 14,
+      color: glow,
+      offsetX: 0,
+      offsetY: 4
+    })
+  }
+
+  @Builder
+  filterChip(label: string) {
     Text(label)
-      .fontSize(14)
+      .fontSize(9)
+      .fontWeight(FontWeight.Medium)
       .fontColor(Color.White)
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .borderRadius(14)
-      .backgroundColor(this.selectedFilter === label ? '#F1362D' : '#23324D')
+      .padding({ left: 8, right: 8, top: 5, bottom: 5 })
+      .borderRadius(10)
+      .backgroundColor(this.selectedFilter === label ? '#3E8BFF' : '#17284A')
+      .shadow({
+        radius: this.selectedFilter === label ? 10 : 0,
+        color: this.selectedFilter === label ? '#3E8BFF66' : '#00000000',
+        offsetX: 0,
+        offsetY: 0
+      })
       .onClick(() => {
         this.selectedFilter = label
       })
@@ -49,145 +80,156 @@ export struct SOSLogPage {
 
   build() {
     Scroll() {
-      Column({ space: 18 }) {
-        Row() {
-          Button('< Back')
-            .backgroundColor('#1A2740')
-            .fontColor(Color.White)
-            .borderRadius(14)
-            .onClick(() => this.onBack())
+      Column({ space: 10 }) {
+        Blank().height(18)
 
-          Blank()
+        Text('SOS Log')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(Color.White)
+          .textShadow({
+            radius: 10,
+            color: '#5BA3FF',
+            offsetX: 0,
+            offsetY: 0
+          })
 
+        Row({ space: 8 }) {
           Button('Refresh')
-            .backgroundColor('#1A2740')
+            .layoutWeight(1)
+            .height(34)
+            .backgroundColor('#2A4F9B')
             .fontColor(Color.White)
-            .borderRadius(14)
+            .borderRadius(16)
             .onClick(() => {
               this.loadLogs()
+            })
+
+          Button('Back')
+            .layoutWeight(1)
+            .height(34)
+            .backgroundColor('#1A2740')
+            .fontColor(Color.White)
+            .borderRadius(16)
+            .onClick(() => {
+              this.onBack()
             })
         }
         .width('100%')
 
-        Text('SOS Dashboard')
-          .fontSize(30)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
-
-        Row({ space: 18 }) {
-          this.statCard(this.totalCount.toString(), 'Total', '#FFFFFF')
-          this.statCard(this.activeCount.toString(), 'Active', '#FF7262')
-          this.statCard(this.acknowledgedCount.toString(), 'Acknowledged', '#F4D047')
-          this.statCard(this.resolvedCount.toString(), 'Resolved', '#53E08C')
+        Row({ space: 8 }) {
+          this.statCard(this.totalCount.toString(), 'Total', '#5BA3FF33')
+          this.statCard(this.activeTotal.toString(), 'Active', '#FF6A5A33')
         }
         .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
 
         Row({ space: 8 }) {
-          this.chip('ALL')
-          this.chip('ACTIVE')
-          this.chip('ACKNOWLEDGED')
-          this.chip('RESOLVED')
+          this.statCard(this.acknowledgedCount.toString(), 'Ack', '#FFD05A33')
+          this.statCard(this.resolvedCount.toString(), 'Done', '#38D67A33')
         }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
+
+        Row({ space: 6 }) {
+          this.filterChip('ALL')
+          this.filterChip('ACTIVE')
+          this.filterChip('ACKNOWLEDGED')
+          this.filterChip('RESOLVED')
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
 
         ForEach(this.getFilteredLogs(), (item: SosItem) => {
-          Column({ space: 10 }) {
+          Column({ space: 6 }) {
             Row() {
               Text(item.userName)
-                .fontSize(20)
+                .fontSize(13)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(Color.White)
 
+              Blank()
+
               Text(item.status)
-                .fontSize(12)
+                .fontSize(9)
                 .fontColor(Color.White)
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(10)
-                .backgroundColor(item.status === 'ACTIVE' ? '#8A1D1D' : item.status === 'ACKNOWLEDGED' ? '#8C650F' : '#156B3A')
+                .padding({ left: 6, right: 6, top: 3, bottom: 3 })
+                .borderRadius(8)
+                .backgroundColor(
+                  item.status === 'ACTIVE'
+                    ? '#C54535'
+                    : item.status === 'ACKNOWLEDGED'
+                    ? '#B98916'
+                    : '#1E9A57'
+                )
             }
             .width('100%')
-            .justifyContent(FlexAlign.SpaceBetween)
 
-            Row({ space: 8 }) {
-              Text(item.profile)
-                .fontSize(12)
-                .fontColor('#D7E2F1')
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(10)
-                .backgroundColor('#23324D')
-
-              Text(item.alertType)
-                .fontSize(12)
-                .fontColor('#D7E2F1')
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(10)
-                .backgroundColor('#23324D')
-            }
+            Text(item.profile + ' • ' + item.alertType)
+              .fontSize(9)
+              .fontColor('#BFD2F4')
 
             Text(item.message)
-              .fontSize(15)
-              .fontColor('#D7E2F1')
-
-            Text(item.latitude.toString() + ', ' + item.longitude.toString())
-              .fontSize(13)
-              .fontColor('#8FA2C0')
+              .fontSize(10)
+              .fontColor('#E7EEFF')
+              .maxLines(2)
 
             Text(item.time)
-              .fontSize(13)
-              .fontColor('#8FA2C0')
+              .fontSize(9)
+              .fontColor('#8FA8D8')
 
             if (item.status === 'ACTIVE') {
               Button('Acknowledge')
-                .backgroundColor('#B67606')
+                .width('100%')
+                .height(32)
+                .backgroundColor('#D59A1A')
                 .fontColor(Color.White)
+                .fontSize(10)
                 .borderRadius(14)
-                .onClick(async () => {
-                  await NetworkService.acknowledgeSOS(item.id)
-                  await this.loadLogs()
+                .onClick(() => {
+                  NetworkService.acknowledgeSOS(item.id).then(() => {
+                    this.loadLogs()
+                  })
                 })
             }
 
             if (item.status === 'ACKNOWLEDGED') {
               Button('Resolve')
-                .backgroundColor('#1B8D49')
+                .width('100%')
+                .height(32)
+                .backgroundColor('#1E9A57')
                 .fontColor(Color.White)
+                .fontSize(10)
                 .borderRadius(14)
-                .onClick(async () => {
-                  await NetworkService.resolveSOS(item.id)
-                  await this.loadLogs()
+                .onClick(() => {
+                  NetworkService.resolveSOS(item.id).then(() => {
+                    this.loadLogs()
+                  })
                 })
             }
           }
           .width('100%')
-          .padding(16)
+          .padding(12)
           .borderRadius(20)
-          .backgroundColor('#0F1B30')
+          .linearGradient({
+            angle: 135,
+            colors: [['#12284C', 0.0], ['#0A162B', 1.0]]
+          })
           .border({
             width: 1,
-            color: '#23324D'
+            color: '#233C66'
           })
         }, (item: SosItem) => item.id)
+
+        Blank().height(40)
       }
-      .padding(20)
+      .padding({ left: 22, right: 22 })
       .width('100%')
     }
     .width('100%')
     .height('100%')
     .backgroundColor('#06101F')
-  }
-
-  @Builder
-  private statCard(value: string, label: string, color: string) {
-    Column({ space: 4 }) {
-      Text(value)
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(color)
-      Text(label)
-        .fontSize(13)
-        .fontColor('#8FA2C0')
-    }
-    .padding(12)
-    .borderRadius(16)
-    .backgroundColor('#0F1B30')
   }
 }

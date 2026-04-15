@@ -1,151 +1,167 @@
-import { NetworkService, AlertItem } from '../services/NetworkService'
-
 @Component
 export struct WatchPage {
-  userName: string = ''
   selectedProfile: string = 'Blind'
   onBack: () => void = () => {}
   onNavigate: () => void = () => {}
   onSOS: () => void = () => {}
 
-  @State activeProfile: string = 'Blind'
-  @State currentAlert: AlertItem | null = null
-
-  aboutToAppear() {
-    this.activeProfile = this.selectedProfile
-    this.loadAlert()
+  private getModeLabel(): string {
+    if (this.selectedProfile === 'Blind') {
+      return 'Audio priority active'
+    }
+    if (this.selectedProfile === 'Deaf') {
+      return 'Visual priority active'
+    }
+    if (this.selectedProfile === 'Speech') {
+      return 'Silent SOS ready'
+    }
+    if (this.selectedProfile === 'Mobility') {
+      return 'Accessible mode active'
+    }
+    return 'Calm guidance active'
   }
 
-  async loadAlert() {
-    this.currentAlert = await NetworkService.fetchCurrentAlert()
-  }
-
-  private profileChip(label: string) {
+  @Builder
+  profileChip(label: string) {
     Text(label)
-      .fontSize(14)
-      .fontColor(Color.White)
-      .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-      .borderRadius(14)
-      .backgroundColor(this.activeProfile === label ? '#243653' : '#1A2740')
-      .onClick(() => {
-        this.activeProfile = label
-      })
-  }
-
-  private getBodyText(): string {
-    if (this.currentAlert === null) {
-      return 'No active alert. Trigger an alert from Admin Panel to see adaptive response.'
-    }
-
-    if (this.activeProfile === 'Blind') {
-      return 'Fire alert. Audio guidance active. Exit is ahead.'
-    }
-    if (this.activeProfile === 'Deaf') {
-      return 'FIRE ALERT. EVACUATE NOW.'
-    }
-    if (this.activeProfile === 'Speech') {
-      return 'Tap SOS to send silent help request.'
-    }
-    if (this.activeProfile === 'Mobility') {
-      return 'Accessible route active. Avoid stairs.'
-    }
-    return 'Stay calm. Follow one step at a time.'
+      .fontSize(10)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.selectedProfile === label ? Color.White : '#D7E4FF')
+      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+      .borderRadius(12)
+      .backgroundColor(this.selectedProfile === label ? '#3E8BFF' : '#17284A')
+      .opacity(this.selectedProfile === label ? 1 : 0.9)
   }
 
   build() {
     Scroll() {
-      Column({ space: 18 }) {
-        Row() {
-          Button('< Back')
-            .backgroundColor('#1A2740')
-            .fontColor(Color.White)
-            .borderRadius(14)
-            .onClick(() => this.onBack())
+      Column({ space: 10 }) {
+        Blank().height(18)
 
-          Blank()
-
-          Button('Refresh')
-            .backgroundColor('#1A2740')
-            .fontColor(Color.White)
-            .borderRadius(14)
-            .onClick(() => {
-              this.loadAlert()
-            })
-        }
-        .width('100%')
-
-        Text('Watch Simulator')
-          .fontSize(30)
+        Text('Watch')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor(Color.White)
+          .textShadow({
+            radius: 10,
+            color: '#5BA3FF',
+            offsetX: 0,
+            offsetY: 0
+          })
 
-        Text(this.userName === '' ? 'No profile set' : this.userName + ' • ' + this.activeProfile)
-          .fontSize(16)
-          .fontColor('#90A1BC')
-
-        Column({ space: 10 }) {
-          Text(this.activeProfile.toUpperCase() + ' MODE')
-            .fontSize(14)
-            .fontColor('#8FA2C0')
-
-          Text(this.currentAlert === null ? 'NO ALERT' : this.currentAlert.type)
-            .fontSize(22)
+        Column({ space: 4 }) {
+          Text('Wearable Mode')
+            .fontSize(18)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#FF6A5E')
-
-          Text(this.getBodyText())
-            .fontSize(16)
-            .textAlign(TextAlign.Center)
             .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .textShadow({
+              radius: 12,
+              color: '#4A8CFF',
+              offsetX: 0,
+              offsetY: 0
+            })
 
-          if (this.activeProfile === 'Blind') {
-            Text('🔊 Audio guidance active')
-              .fontSize(14)
-              .fontColor('#8FD3FF')
-          }
-
-          if (this.activeProfile === 'Deaf') {
-            Text('⚡ Visual mode active')
-              .fontSize(14)
-              .fontColor('#F1C75B')
-          }
-
-          Row({ space: 10 }) {
-            Button('NAVIGATE')
-              .layoutWeight(1)
-              .backgroundColor('#356CFF')
-              .fontColor(Color.White)
-              .borderRadius(14)
-              .onClick(() => this.onNavigate())
-
-            Button('SOS')
-              .layoutWeight(1)
-              .backgroundColor('#E13333')
-              .fontColor(Color.White)
-              .borderRadius(14)
-              .onClick(() => this.onSOS())
-          }
+          Text(this.getModeLabel())
+            .fontSize(11)
+            .fontColor('#E4EEFF')
+            .textAlign(TextAlign.Center)
+            .width('100%')
         }
-        .width(280)
-        .padding(18)
-        .borderRadius(30)
-        .backgroundColor('#050C18')
-        .border({
-          width: 2,
-          color: '#253651'
+        .width('100%')
+        .padding(16)
+        .borderRadius(22)
+        .linearGradient({
+          angle: 135,
+          colors: [['#245DCC', 0.0], ['#132B56', 0.55], ['#09172E', 1.0]]
         })
-        .alignItems(HorizontalAlign.Center)
+        .shadow({
+          radius: 20,
+          color: '#2E6EFF55',
+          offsetX: 0,
+          offsetY: 6
+        })
 
-        Row({ space: 8 }) {
-          this.profileChip('Blind')
-          this.profileChip('Deaf')
-          this.profileChip('Speech')
-          this.profileChip('Mobility')
-          this.profileChip('Elderly')
+        Column({ space: 8 }) {
+          Row({ space: 8 }) {
+            this.profileChip('Blind')
+            this.profileChip('Deaf')
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+
+          Row({ space: 8 }) {
+            this.profileChip('Speech')
+            this.profileChip('Mobility')
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+
+          Row() {
+            this.profileChip('Elderly')
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
         }
+        .width('100%')
+        .padding(10)
+        .borderRadius(18)
+        .backgroundColor('#0C1830')
+
+        Button('Navigate')
+          .width('100%')
+          .height(40)
+          .backgroundColor('#1FD06C')
+          .fontColor(Color.White)
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .borderRadius(18)
+          .shadow({
+            radius: 14,
+            color: '#1FD06C66',
+            offsetX: 0,
+            offsetY: 4
+          })
+          .onClick(() => {
+            this.onNavigate()
+          })
+
+        Button('Send SOS')
+          .width('100%')
+          .height(42)
+          .backgroundColor('#FF5C5C')
+          .fontColor(Color.White)
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .borderRadius(18)
+          .shadow({
+            radius: 14,
+            color: '#FF5C5C66',
+            offsetX: 0,
+            offsetY: 4
+          })
+          .onClick(() => {
+            this.onSOS()
+          })
+
+        Button('Back')
+          .width('100%')
+          .height(36)
+          .backgroundColor('#1A2740')
+          .fontColor('#DDE8FF')
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.onBack()
+          })
+
+        Blank().height(34)
       }
+      .padding({ left: 22, right: 22 })
       .width('100%')
-      .padding(20)
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')

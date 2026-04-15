@@ -14,6 +14,8 @@ export interface ProfileItem {
   userId: string
   name: string
   profile: string
+  contactName: string
+  contactNumber: string
   updatedAt: string
 }
 
@@ -37,265 +39,186 @@ export interface SosStats {
   resolved: number
 }
 
-export class NetworkService {
-  static BASE_URL: string = 'http://192.168.229.136:3000'
-  static USER_ID: string = 'demo-user-1'
+export interface SosLogsResponse {
+  success: boolean
+  logs: SosItem[]
+  stats: SosStats
+}
 
-  static profileToBackend(profile: string): string {
-    if (profile === 'Blind') return 'vision'
-    if (profile === 'Deaf') return 'hearing'
-    if (profile === 'Speech') return 'speech'
-    if (profile === 'Mobility') return 'mobility'
-    return 'cognitive'
+export class NetworkService {
+  private static profileData: ProfileItem = {
+    userId: 'demo-user',
+    name: 'Krisshnetha',
+    profile: 'Blind',
+    contactName: 'Demo Caregiver',
+    contactNumber: '+6500000000',
+    updatedAt: 'Saved just now'
   }
 
-  static profileFromBackend(profile: string): string {
-    if (profile === 'vision') return 'Blind'
-    if (profile === 'hearing') return 'Deaf'
-    if (profile === 'speech') return 'Speech'
-    if (profile === 'mobility') return 'Mobility'
-    return 'Elderly'
+  private static currentAlertData: AlertItem | null = {
+    id: 'alert-1',
+    type: 'FIRE',
+    severity: 'HIGH',
+    instruction: 'Evacuate immediately using the nearest safe exit.',
+    locationName: 'Demo Building',
+    timestamp: '1 min ago',
+    active: true,
+    acknowledged: false,
+    resolved: false
+  }
+
+  private static sosLogData: SosItem[] = [
+    {
+      id: 'sos-1',
+      userName: 'Demo User',
+      profile: 'Blind',
+      alertType: 'FIRE',
+      latitude: 1.3521,
+      longitude: 103.8198,
+      message: 'Need emergency help now.',
+      time: '2 min ago',
+      status: 'ACTIVE',
+      source: 'watch'
+    }
+  ]
+
+  private static makeTimeText(): string {
+    let d: Date = new Date()
+    let h: string = d.getHours().toString()
+    let m: string = d.getMinutes().toString()
+    if (m.length === 1) {
+      m = '0' + m
+    }
+    return h + ':' + m
   }
 
   static async fetchCurrentAlert(): Promise<AlertItem | null> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/sync/state`)
-      const data = await response.json() as Record<string, Object>
-      const state = data['state'] as Record<string, Object>
-      const emergency = (state && state['activeEmergency']) as Record<string, Object> | undefined
-      if (!emergency) return null
-      return {
-        id: String(emergency['id'] || ''),
-        type: String(emergency['title'] || emergency['type'] || 'ALERT'),
-        severity: String(emergency['severity'] || 'HIGH'),
-        instruction: String(emergency['message'] || 'Follow emergency instructions'),
-        locationName: 'Shared backend',
-        timestamp: String(emergency['createdAt'] || new Date().toISOString()),
-        active: true,
-        acknowledged: false,
-        resolved: false
-      }
-    } catch (error) {
-      console.error('fetchCurrentAlert error: ' + JSON.stringify(error))
-      return null
-    }
+    return NetworkService.currentAlertData
   }
 
-  static async fetchAlertHistory(): Promise<Array<AlertItem>> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/history`)
-      const data = await response.json() as Record<string, Object>
-      const history = (data['history'] as Array<Record<string, Object>>) || []
-      return history.map((item: Record<string, Object>) => ({
-        id: String(item['id'] || ''),
-        type: String(item['title'] || item['type'] || 'ALERT'),
-        severity: String(item['severity'] || 'HIGH'),
-        instruction: String(item['message'] || 'Follow emergency instructions'),
-        locationName: 'Shared backend',
-        timestamp: String(item['resolvedAt'] || item['createdAt'] || new Date().toISOString()),
-        active: false,
-        acknowledged: true,
-        resolved: true
-      }))
-    } catch (error) {
-      console.error('fetchAlertHistory error: ' + JSON.stringify(error))
+  static async fetchAlertHistory(): Promise<AlertItem[]> {
+    if (NetworkService.currentAlertData === null) {
       return []
     }
+    return [NetworkService.currentAlertData]
   }
 
-  static async triggerAlert(type: string, severity: string, instruction: string, locationName: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/emergency/trigger`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: NetworkService.USER_ID,
-          type: type.toLowerCase(),
-          severity: severity.toLowerCase(),
-          title: type,
-          message: instruction + ' @ ' + locationName
-        })
-      })
-
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('triggerAlert error: ' + JSON.stringify(error))
-      return false
+  static async triggerAlert(
+    type: string,
+    severity: string,
+    instruction: string,
+    locationName: string
+  ): Promise<boolean> {
+    NetworkService.currentAlertData = {
+      id: 'alert-' + Date.now().toString(),
+      type: type,
+      severity: severity,
+      instruction: instruction,
+      locationName: locationName,
+      timestamp: 'Just now',
+      active: true,
+      acknowledged: false,
+      resolved: false
     }
-  }
-
-  static async clearAllAlerts(): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/emergency/resolve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('clearAllAlerts error: ' + JSON.stringify(error))
-      return false
-    }
-  }
-
-  static async fetchProfile(): Promise<ProfileItem | null> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/sync/state`)
-      const data = await response.json() as Record<string, Object>
-      const state = data['state'] as Record<string, Object>
-      if (!state) return null
-      return {
-        userId: String(state['userId'] || NetworkService.USER_ID),
-        name: '',
-        profile: NetworkService.profileFromBackend(String(state['profile'] || 'vision')),
-        updatedAt: new Date().toISOString()
-      }
-    } catch (error) {
-      console.error('fetchProfile error: ' + JSON.stringify(error))
-      return null
-    }
-  }
-
-  static async saveProfile(name: string, profile: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: NetworkService.USER_ID,
-          userName: name,
-          profile: NetworkService.profileToBackend(profile)
-        })
-      })
-
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('saveProfile error: ' + JSON.stringify(error))
-      return false
-    }
-  }
-
-  static async sendSOS(userName: string, profile: string, alertType: string, latitude: number, longitude: number, message: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/sos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: NetworkService.USER_ID,
-          userName,
-          profile: NetworkService.profileToBackend(profile),
-          emergencyType: alertType.toLowerCase(),
-          location: `${latitude},${longitude}`,
-          message,
-          source: 'watch'
-        })
-      })
-
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('sendSOS error: ' + JSON.stringify(error))
-      return false
-    }
-  }
-
-  static async fetchSOSLogs(): Promise<Record<string, Object>> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/sos/latest`)
-      const data = await response.json() as Record<string, Object>
-      const latest = data['latestEvent'] as Record<string, Object>
-      if (!latest) {
-        return {
-          success: true,
-          logs: [],
-          stats: { total: 0, active: 0, acknowledged: 0, resolved: 0 }
-        }
-      }
-      const log: SosItem = {
-        id: String(latest['id'] || ''),
-        userName: 'Demo User',
-        profile: String(latest['source'] || 'watch'),
-        alertType: String(latest['emergencyType'] || 'unknown'),
-        latitude: 1.3521,
-        longitude: 103.8198,
-        message: String(latest['message'] || ''),
-        time: String(latest['time'] || new Date().toISOString()),
-        status: 'ACTIVE',
-        source: String(latest['source'] || 'watch')
-      }
-      return {
-        success: true,
-        logs: [log],
-        stats: { total: 1, active: 1, acknowledged: 0, resolved: 0 }
-      }
-    } catch (error) {
-      console.error('fetchSOSLogs error: ' + JSON.stringify(error))
-      return {
-        success: false,
-        logs: [],
-        stats: {
-          total: 0,
-          active: 0,
-          acknowledged: 0,
-          resolved: 0
-        }
-      }
-    }
-  }
-
-  static async acknowledgeSOS(_id: string): Promise<boolean> {
     return true
   }
 
-  static async resolveSOS(_id: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/safe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: NetworkService.USER_ID,
-          source: 'watch'
-        })
-      })
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('resolveSOS error: ' + JSON.stringify(error))
-      return false
+  static async clearAllAlerts(): Promise<boolean> {
+    NetworkService.currentAlertData = null
+    return true
+  }
+
+  static async fetchProfile(): Promise<ProfileItem | null> {
+    return NetworkService.profileData
+  }
+
+  static async saveProfile(
+    name: string,
+    profile: string,
+    contactName: string,
+    contactNumber: string
+  ): Promise<boolean> {
+    NetworkService.profileData = {
+      userId: 'demo-user',
+      name: name,
+      profile: profile,
+      contactName: contactName,
+      contactNumber: contactNumber,
+      updatedAt: 'Saved at ' + NetworkService.makeTimeText()
+    }
+    return true
+  }
+
+  static async sendSOS(
+    userName: string,
+    profile: string,
+    alertType: string,
+    latitude: number,
+    longitude: number,
+    message: string
+  ): Promise<boolean> {
+    let newItem: SosItem = {
+      id: 'sos-' + Date.now().toString(),
+      userName: userName,
+      profile: profile,
+      alertType: alertType,
+      latitude: latitude,
+      longitude: longitude,
+      message: message,
+      time: 'Sent at ' + NetworkService.makeTimeText(),
+      status: 'ACTIVE',
+      source: 'watch'
+    }
+    NetworkService.sosLogData.unshift(newItem)
+    return true
+  }
+
+  static async fetchSOSLogs(): Promise<SosLogsResponse> {
+    let activeNum: number = 0
+    let acknowledgedNum: number = 0
+    let resolvedNum: number = 0
+
+    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
+      let item: SosItem = NetworkService.sosLogData[i]
+      if (item.status === 'ACTIVE') {
+        activeNum += 1
+      } else if (item.status === 'ACKNOWLEDGED') {
+        acknowledgedNum += 1
+      } else if (item.status === 'RESOLVED') {
+        resolvedNum += 1
+      }
+    }
+
+    return {
+      success: true,
+      logs: NetworkService.sosLogData,
+      stats: {
+        total: NetworkService.sosLogData.length,
+        active: activeNum,
+        acknowledged: acknowledgedNum,
+        resolved: resolvedNum
+      }
     }
   }
 
-  static async markSafe(): Promise<boolean> {
-    try {
-      const response = await fetch(`${NetworkService.BASE_URL}/api/safe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: NetworkService.USER_ID,
-          source: 'watch'
-        })
-      })
-      const data = await response.json() as Record<string, Object>
-      return !!data['success']
-    } catch (error) {
-      console.error('markSafe error: ' + JSON.stringify(error))
-      return false
+  static async acknowledgeSOS(id: string): Promise<boolean> {
+    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
+      if (NetworkService.sosLogData[i].id === id) {
+        NetworkService.sosLogData[i].status = 'ACKNOWLEDGED'
+        return true
+      }
     }
+    return false
+  }
+
+  static async resolveSOS(id: string): Promise<boolean> {
+    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
+      if (NetworkService.sosLogData[i].id === id) {
+        NetworkService.sosLogData[i].status = 'RESOLVED'
+        return true
+      }
+    }
+    return false
   }
 
   static getMockLocationString(): string {

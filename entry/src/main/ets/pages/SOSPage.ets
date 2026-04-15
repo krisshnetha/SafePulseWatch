@@ -1,74 +1,98 @@
 @Component
 export struct SOSPage {
-  locationText: string = 'Location shared successfully'
+  locationText: string = 'SOS sent successfully'
   onBack: () => void = () => {}
-  private readonly pageBg: string = '#0A182A'
-  private readonly okBg: string = '#173B2D'
+
+  @State resendCount: number = 0
 
   build() {
-    Column({ space: 14 }) {
-      Text('SOS Confirmed')
-        .fontSize(30)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#74E59A')
+    Scroll() {
+      Column({ space: 12 }) {
+        Blank().height(20)
 
-      Column({ space: 6 }) {
-        Text('Emergency request sent')
+        Text('SOS Sent')
+          .width('100%')
+          .textAlign(TextAlign.Center)
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F0FFF5')
+          .fontColor(Color.White)
 
-        Text(this.locationText)
-          .fontSize(15)
-          .fontColor('#D9F4E2')
-          .textAlign(TextAlign.Start)
-      }
-      .width('100%')
-      .padding(12)
-      .backgroundColor(this.okBg)
-      .borderRadius(16)
+        Column({ space: 6 }) {
+          Text('Emergency request created')
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
 
-      Column({ space: 4 }) {
-        Text('What happens now')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFF8E1')
+          Text(this.locationText)
+            .fontSize(10)
+            .fontColor('#D6E2F5')
+            .textAlign(TextAlign.Center)
+            .maxLines(4)
 
-        Text('1. Your location is shared with responders')
-          .fontSize(14)
-          .fontColor('#E2ECF7')
-        Text('2. The watch will vibrate on status updates')
-          .fontSize(14)
-          .fontColor('#E2ECF7')
-        Text('3. Keep this screen visible if possible')
-          .fontSize(14)
-          .fontColor('#E2ECF7')
-      }
-      .width('100%')
-      .padding(12)
-      .backgroundColor('#1B2D45')
-      .borderRadius(16)
+          if (this.resendCount > 0) {
+            Text('Resent ' + this.resendCount.toString() + ' time(s)')
+              .fontSize(10)
+              .fontColor('#F9D2B2')
+          }
+        }
+        .width('100%')
+        .padding(16)
+        .borderRadius(22)
+        .backgroundColor('#12284C')
 
-      Button('RETURN TO DASHBOARD')
-        .width('90%')
-        .height(58)
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .backgroundColor('#1E88E5')
-        .fontColor(Color.White)
+        Column({ space: 6 }) {
+          Row({ space: 8 }) {
+            Text('✓').fontSize(12).fontColor('#53E08C')
+            Text('Location captured').fontSize(11).fontColor(Color.White)
+          }
+          .width('100%')
+
+          Row({ space: 8 }) {
+            Text('✓').fontSize(12).fontColor('#53E08C')
+            Text('Emergency contact notified').fontSize(11).fontColor(Color.White)
+          }
+          .width('100%')
+
+          Row({ space: 8 }) {
+            Text('✓').fontSize(12).fontColor('#53E08C')
+            Text('Awaiting acknowledgement').fontSize(11).fontColor(Color.White)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding(12)
         .borderRadius(18)
-        .onClick(() => this.onBack())
+        .backgroundColor('#0E1A30')
 
-      Text('Accessibility: voice and haptic confirmations are active.')
-        .fontSize(13)
-        .fontColor('#BFD0E5')
-        .textAlign(TextAlign.Center)
+        Button('Send Again')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#2A4F9B')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.resendCount += 1
+          })
+
+        Button('Back Home')
+          .width('100%')
+          .height(42)
+          .backgroundColor('#1A2740')
+          .fontColor(Color.White)
+          .fontSize(13)
+          .borderRadius(18)
+          .onClick(() => {
+            this.onBack()
+          })
+
+        Blank().height(36)
+      }
+      .padding({ left: 22, right: 22 })
+      .width('100%')
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor(this.pageBg)
-    .padding(14)
+    .backgroundColor('#06101F')
   }
 }

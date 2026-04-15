@@ -2,92 +2,147 @@
 export struct AlertPage {
   profileName: string = 'Blind'
   alertType: string = 'FIRE'
-  alertInstruction: string = 'Evacuate immediately.'
+  alertInstruction: string = 'Evacuate immediately via nearest exit.'
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
-  onSafe: () => void = () => {}
+  onNavigate: () => void = () => {}
 
-  private getModeHint(): string {
+  @State acknowledged: boolean = false
+
+  getModeLabel(): string {
     if (this.profileName === 'Blind') {
-      return 'Audio + haptic emergency guidance'
+      return 'Audio Priority'
     }
     if (this.profileName === 'Deaf') {
-      return 'Large visual emergency mode'
+      return 'Visual Priority'
     }
     if (this.profileName === 'Speech') {
-      return 'Silent SOS mode active'
+      return 'Silent SOS Ready'
     }
     if (this.profileName === 'Mobility') {
-      return 'Accessible route guidance active'
+      return 'Accessible Route'
     }
-    return 'Calm step-by-step mode active'
+    return 'Calm Guidance'
   }
 
   build() {
-    Column({ space: 18 }) {
-      Text('EMERGENCY ALERT')
-        .fontSize(30)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#FF6B5F')
+    Scroll() {
+      Column({ space: 12 }) {
+        Blank().height(20)
 
-      Text(this.alertType)
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-
-      Text(this.getModeHint())
-        .fontSize(16)
-        .fontColor('#FFD36B')
-
-      Text(this.alertInstruction)
-        .fontSize(this.profileName === 'Deaf' ? 24 : 18)
-        .fontWeight(this.profileName === 'Deaf' ? FontWeight.Bold : FontWeight.Normal)
-        .textAlign(TextAlign.Center)
-        .fontColor(Color.White)
-        .margin({ left: 18, right: 18 })
-
-      if (this.profileName === 'Blind') {
-        Text('🔊 Voice guidance: Exit is ahead.')
-          .fontSize(16)
-          .fontColor('#8FD3FF')
-      }
-
-      Row({ space: 12 }) {
-        Button('SEND SOS')
-          .layoutWeight(1)
-          .height(56)
-          .backgroundColor('#E13333')
+        Text('Alert')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
           .fontColor(Color.White)
-          .borderRadius(18)
-          .onClick(() => this.onSOS())
 
-        Button('MARK SAFE')
-          .layoutWeight(1)
-          .height(56)
-          .backgroundColor('#1B8D49')
-          .fontColor(Color.White)
-          .borderRadius(18)
-          .onClick(() => this.onSafe())
-      }
-      .width('100%')
-
-      Row({ space: 12 }) {
-
-        Button('BACK')
-          .layoutWeight(1)
-          .height(56)
+        Button('Back')
+          .width('100%')
+          .height(34)
           .backgroundColor('#1A2740')
           .fontColor(Color.White)
-          .borderRadius(18)
-          .onClick(() => this.onBack())
+          .borderRadius(16)
+          .onClick(() => {
+            this.onBack()
+          })
+
+        Column({ space: 8 }) {
+          Row() {
+            Text('LIVE ALERT')
+              .fontSize(10)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#FFE9DD')
+
+            Blank()
+
+            Text('HIGH')
+              .fontSize(10)
+              .fontColor(Color.White)
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .borderRadius(8)
+              .backgroundColor('#C94E1E')
+          }
+          .width('100%')
+
+          Text(this.alertType)
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(Color.White)
+
+          Text(this.alertInstruction)
+            .fontSize(11)
+            .fontColor(Color.White)
+            .maxLines(3)
+            .width('100%')
+
+          Row({ space: 6 }) {
+            Text(this.profileName)
+              .fontSize(10)
+              .fontColor(Color.White)
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(10)
+              .backgroundColor('#E98577')
+
+            Text(this.getModeLabel())
+              .fontSize(10)
+              .fontColor(Color.White)
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(10)
+              .backgroundColor('#B85B32')
+          }
+        }
+        .width('100%')
+        .padding(16)
+        .borderRadius(22)
+        .backgroundColor('#FF5A1F')
+
+        if (this.acknowledged) {
+          Text('Alert acknowledged')
+            .fontSize(11)
+            .fontColor('#CDEDD9')
+        }
+
+        Button('Send SOS')
+          .width('100%')
+          .height(40)
+          .backgroundColor('#FFD9B8')
+          .fontColor('#5A2400')
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.onSOS()
+          })
+
+        Button('Open Route')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#2A4F9B')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.onNavigate()
+          })
+
+        Button(this.acknowledged ? 'Acknowledged' : 'Acknowledge')
+          .width('100%')
+          .height(38)
+          .backgroundColor('#14233A')
+          .fontColor(Color.White)
+          .fontSize(12)
+          .borderRadius(16)
+          .onClick(() => {
+            this.acknowledged = true
+          })
+
+        Blank().height(36)
       }
+      .padding({ left: 22, right: 22 })
       .width('100%')
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .padding(20)
     .backgroundColor('#06101F')
   }
 }
