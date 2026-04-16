@@ -79,11 +79,12 @@ export class AlertSyncService {
       this.forceRefresh('socket-open')
     })
 
-    socket.on('message', (_err, value: string) => {
+    socket.on('message', (_err, value) => {
       try {
-        const payload = JSON.parse(String(value)) as Record<string, Object>
+        const text = typeof value === 'string' ? value : ''
+        const payload = JSON.parse(text) as Record<string, Object>
         const state = payload['state'] as SyncState
-        const reason = String(payload['reason'] || 'socket-message')
+        const reason = typeof payload['reason'] === 'string' ? payload['reason'] : 'socket-message'
         if (state) {
           this.publishState(state, reason)
         }
@@ -92,7 +93,7 @@ export class AlertSyncService {
       }
     })
 
-    socket.on('close', (_err, value: Record<string, Object>) => {
+    socket.on('close', (_err, value: webSocket.CloseResult) => {
       console.error('AlertSyncService socket closed: ' + JSON.stringify(value))
       this.socket = null
       this.isConnecting = false

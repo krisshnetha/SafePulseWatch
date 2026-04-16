@@ -14,6 +14,7 @@ import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 // import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 =======
 >>>>>>> 04fc1ea (edited)
@@ -24,9 +25,10 @@ import { NetworkService, ProfileItem, AlertItem, SyncState } from '../services/N
 
 <<<<<<< HEAD
 =======
+=======
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
 import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 import { common } from '@kit.AbilityKit'
->>>>>>> f823ab1 (fix: finalize ArkTS DevEco compatibility)
 
 =======
 >>>>>>> 04fc1ea (edited)
@@ -45,7 +47,10 @@ struct Index {
   @State userName: string = ''
   @State emergencyContactName: string = 'Demo Caregiver'
   @State emergencyContactNumber: string = '+6500000000'
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
   @State currentAlertType: string = 'FIRE'
   @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
   @State currentAlertConfidence: number = 0
@@ -55,6 +60,7 @@ struct Index {
   @State monitorEventText: string = 'Monitoring is initializing...'
   @State lastFireConfidence: number = 0
 
+<<<<<<< HEAD
   @State currentAlert: AlertItem | null = null
   @State locationText: string = 'SOS sent successfully'
   @State syncStatusText: string = 'Connecting'
@@ -66,6 +72,11 @@ struct Index {
     this.syncService.subscribe(this.syncListener)
     this.syncService.start()
     this.refreshAlertState()
+=======
+  aboutToAppear() {
+    this.initializeFireMonitoring()
+    this.loadInitialProfile()
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
   }
 
   aboutToDisappear(): void {
@@ -77,6 +88,7 @@ struct Index {
     try {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       const hostContext = getContext(this).getHostContext() as common.BaseContext
 =======
       const hostContext = getContext(this) as common.BaseContext
@@ -85,13 +97,14 @@ struct Index {
     } catch (error) {
       console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
 =======
+=======
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
       const context = getContext(this) as common.UIAbilityContext
       await AlertStorageService.initialize(context)
     } catch (error) {
       console.error(
         'Failed to initialize alert storage context: ' + JSON.stringify(error as Object)
       )
->>>>>>> f823ab1 (fix: finalize ArkTS DevEco compatibility)
     }
 
     this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {
@@ -136,12 +149,16 @@ struct Index {
     if (profile !== null) {
       this.selectedProfile = profile.profile
       this.userName = profile.name
-      this.emergencyContactName = profile.contactName || this.emergencyContactName
-      this.emergencyContactNumber = profile.contactNumber || this.emergencyContactNumber
+      this.emergencyContactName = profile.contactName
+      this.emergencyContactNumber = profile.contactNumber
     }
   }
 
+<<<<<<< HEAD
   async checkBackendAlert(): Promise<void> {
+=======
+  async checkBackendAlert() {
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
     const alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
 
     if (alert !== null) {
@@ -157,6 +174,7 @@ struct Index {
     }
   }
 
+<<<<<<< HEAD
   private applySyncState(state: SyncState): void {
     if (!this.isAcknowledging) {
       this.currentAlert = state.activeEmergency
@@ -208,10 +226,13 @@ struct Index {
   }
 
   async sendSOS(message: string): Promise<void> {
+=======
+  async sendSOS(message: string) {
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
     const ok: boolean = await NetworkService.sendSOS(
       this.userName === '' ? 'Unknown User' : this.userName,
       this.selectedProfile,
-      this.currentAlert?.type || 'FIRE',
+      this.currentAlertType,
       1.4448,
       103.8246,
       message
@@ -240,10 +261,13 @@ struct Index {
           monitoringEnabled: this.monitoringEnabled,
           monitorEventText: this.monitorEventText,
           lastFireConfidence: this.lastFireConfidence,
+<<<<<<< HEAD
           currentAlert: this.currentAlert,
           systemStatus: this.currentAlert !== null ? 'Alert Active' : 'Protected',
           syncStatusText: this.syncStatusText,
 
+=======
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -267,7 +291,10 @@ struct Index {
           },
           onViewFireHistory: () => {
             this.currentPage = 'fireHistory'
+<<<<<<< HEAD
             this.refreshAlertState()
+=======
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -315,6 +342,7 @@ struct Index {
       } else if (this.currentPage === 'alert') {
         AlertPage({
           profileName: this.selectedProfile,
+<<<<<<< HEAD
           alertType: this.currentAlert?.type || this.currentAlertType,
           alertSeverity: this.currentAlert?.severity || 'HIGH',
           alertInstruction:
@@ -324,6 +352,12 @@ struct Index {
           syncStatusText: this.syncStatusText,
           isAcknowledging: this.isAcknowledging,
 
+=======
+          alertType: this.currentAlertType,
+          alertInstruction: this.currentAlertInstruction,
+          alertConfidence: this.currentAlertConfidence,
+          detectionMethod: this.currentDetectionMethod,
+>>>>>>> 4a9f382 (fix: clean ArkTS merge leftovers)
           onBack: () => {
             this.currentPage = 'home'
           },
@@ -332,9 +366,6 @@ struct Index {
           },
           onNavigate: () => {
             this.currentPage = 'navigation'
-          },
-          onAcknowledge: () => {
-            this.acknowledgeCurrentAlert()
           }
         })
       } else if (this.currentPage === 'sos') {

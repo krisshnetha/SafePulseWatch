@@ -8,11 +8,11 @@ interface DistributedAlertSender {
   send(payload: FireAlertPayload): Promise<boolean>
 }
 
-interface SafePulseDistributedBus {
+interface SafePulseDistributedBusAdapter {
   publish?: (message: string) => void
 }
 
-declare const SafePulseDistributedBus: SafePulseDistributedBus | undefined
+declare const SafePulseDistributedBus: SafePulseDistributedBusAdapter | undefined
 
 class HarmonyDistributedSender implements DistributedAlertSender {
   async send(payload: FireAlertPayload): Promise<boolean> {

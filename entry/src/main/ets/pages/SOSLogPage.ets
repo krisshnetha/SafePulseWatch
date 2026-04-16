@@ -17,6 +17,14 @@ export struct SOSLogPage {
 
   async loadLogs() {
     const data = await NetworkService.fetchSOSLogs()
+    if (data === null) {
+      this.logs = []
+      this.totalCount = 0
+      this.activeTotal = 0
+      this.acknowledgedCount = 0
+      this.resolvedCount = 0
+      return
+    }
     this.logs = data.logs
     this.totalCount = data.stats.total
     this.activeTotal = data.stats.active
