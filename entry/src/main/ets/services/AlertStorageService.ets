@@ -7,32 +7,35 @@ export interface FireAlertRecord {
   detectionMethod: string
 }
 
+interface PreferencesStoreLike {
+  get(key: string, defaultValue: string): Promise<string>
+  put(key: string, value: string): Promise<void>
+  flush(): Promise<void>
+}
+
 export class AlertStorageService {
   private static readonly STORE_NAME: string = 'fire_alert_store'
   private static readonly ALERTS_KEY: string = 'fire_alerts'
   private static initialized: boolean = false
-  private static context: any = null
-  private static preferences: any = null
+  private static context: BaseContext | null = null
+  private static preferences: PreferencesStoreLike | null = null
   private static memoryFallback: Array<FireAlertRecord> = []
 
-  static async initialize(context: any): Promise<void> {
+  static async initialize(context: BaseContext): Promise<void> {
     if (AlertStorageService.initialized) {
       return
     }
 
     AlertStorageService.context = context
     try {
-      // ArkTS typing for Preferences is strict; use `any` to avoid compiler overload issues.
       const pref = await dataPreferences.getPreferences(
         context,
         AlertStorageService.STORE_NAME
-      ) as any
+      ) as PreferencesStoreLike
       AlertStorageService.preferences = pref
       AlertStorageService.initialized = true
     } catch (error) {
-      console.error(
-        'AlertStorageService initialize fallback mode: ' + JSON.stringify(error as any)
-      )
+      console.error('AlertStorageService initialize fallback mode: ' + JSON.stringify(error as Object))
       AlertStorageService.initialized = true
     }
   }
@@ -68,7 +71,7 @@ export class AlertStorageService {
       const parsed = JSON.parse(json) as Array<FireAlertRecord>
       return parsed
     } catch (error) {
-      console.error('AlertStorageService getAlerts error: ' + JSON.stringify(error as any))
+      console.error('AlertStorageService getAlerts error: ' + JSON.stringify(error as Object))
       return []
     }
   }

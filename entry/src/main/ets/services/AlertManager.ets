@@ -166,7 +166,7 @@ export class AlertManager {
       const firstResult = await this.classifier.classify(clip)
       await this.handleClassificationResult(firstResult, sampleRate, false)
     } catch (error) {
-      console.error('AlertManager classifier error: ' + JSON.stringify(error as any))
+      console.error('AlertManager classifier error: ' + JSON.stringify(error as Object))
       this.snapshot.lastDecision = 'AI classification failed for this cycle'
     } finally {
       this.snapshot.pendingAi = false

@@ -18,11 +18,15 @@ interface RuntimeCapturer {
   read(frameSize: number): Promise<Array<number>>
 }
 
+interface SafePulseAudioCapturerGlobal {
+  SafePulseAudioCapturer?: RuntimeCapturer
+}
+
 class HarmonyMicrophoneAdapter implements AudioSourceAdapter {
   private capturer: RuntimeCapturer | null = null
 
   async start(sampleRate: number): Promise<void> {
-    const runtime = (globalThis as unknown as Record<string, unknown>)['SafePulseAudioCapturer'] as RuntimeCapturer | undefined
+    const runtime = (globalThis as SafePulseAudioCapturerGlobal).SafePulseAudioCapturer
     if (!runtime) {
       throw new Error('SafePulseAudioCapturer runtime is not available')
     }
@@ -119,7 +123,9 @@ export class FireAudioService {
     try {
       await this.source.start(this.sampleRate)
     } catch (error) {
-      console.warn('Realtime microphone unavailable, using simulated adapter: ' + JSON.stringify(error as any))
+      console.warn(
+        'Realtime microphone unavailable, using simulated adapter: ' + JSON.stringify(error as Object)
+      )
       this.source = new SimulatedMicrophoneAdapter()
       await this.source.start(this.sampleRate)
     }
@@ -165,7 +171,7 @@ export class FireAudioService {
         listener(frame)
       })
     } catch (error) {
-      console.error('FireAudioService processTick error: ' + JSON.stringify(error as any))
+      console.error('FireAudioService processTick error: ' + JSON.stringify(error as Object))
     } finally {
       this.isProcessing = false
     }

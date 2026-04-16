@@ -47,7 +47,7 @@ struct Index {
       await AlertStorageService.initialize(context)
     } catch (error) {
       console.error(
-        'Failed to initialize alert storage context: ' + JSON.stringify(error as any)
+        'Failed to initialize alert storage context: ' + JSON.stringify(error as Object)
       )
     }
 

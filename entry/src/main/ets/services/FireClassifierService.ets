@@ -91,7 +91,7 @@ export class FireClassifierService {
         inferenceMs: Date.now() - startMs
       }
     } catch (error) {
-      console.error('Primary fire classifier failed: ' + JSON.stringify(error as any))
+      console.error('Primary fire classifier failed: ' + JSON.stringify(error as Object))
       const confidence = await this.fallbackEngine.inferFireAlarm(clip)
       return {
         confidence,
