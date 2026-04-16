@@ -6,56 +6,61 @@ import { NavigationPage } from './NavigationPage'
 import { AdminPage } from './AdminPage'
 import { WatchPage } from './WatchPage'
 import { SOSLogPage } from './SOSLogPage'
-
 import { FireHistoryPage } from './FireHistoryPage'
+
 import { HapticService } from '../services/HapticService'
 import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
 import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
 <<<<<<< HEAD
+<<<<<<< HEAD
 // import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
+=======
+>>>>>>> 04fc1ea (edited)
 import common from '@ohos.app.ability.common'
 
 import { AlertSyncService } from '../services/AlertSyncService'
 import { NetworkService, ProfileItem, AlertItem, SyncState } from '../services/NetworkService'
 
+<<<<<<< HEAD
 =======
 import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 import { common } from '@kit.AbilityKit'
 >>>>>>> f823ab1 (fix: finalize ArkTS DevEco compatibility)
 
+=======
+>>>>>>> 04fc1ea (edited)
 @Entry
 @Component
 struct Index {
   private readonly alertManager: AlertManager = new AlertManager()
+  private syncService: AlertSyncService = AlertSyncService.getInstance()
+
+  private syncListener = (state: SyncState, _reason: string): void => {
+    this.applySyncState(state)
+  }
 
   @State currentPage: string = 'home'
   @State selectedProfile: string = 'Blind'
   @State userName: string = ''
   @State emergencyContactName: string = 'Demo Caregiver'
   @State emergencyContactNumber: string = '+6500000000'
-<<<<<<< HEAD
+
   @State currentAlertType: string = 'FIRE'
   @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
   @State currentAlertConfidence: number = 0
   @State currentDetectionMethod: string = 'frequency+pattern+ai'
-  @State locationText: string = 'SOS sent successfully'
+
   @State monitoringEnabled: boolean = true
   @State monitorEventText: string = 'Monitoring is initializing...'
   @State lastFireConfidence: number = 0
-=======
+
   @State currentAlert: AlertItem | null = null
   @State locationText: string = 'SOS sent successfully'
   @State syncStatusText: string = 'Connecting'
   @State isAcknowledging: boolean = false
 
-  private syncService: AlertSyncService = AlertSyncService.getInstance()
-  private syncListener = (state: SyncState, _reason: string): void => {
-    this.applySyncState(state)
-  }
->>>>>>> d75db51 (updates on backend and entry)
-
-  aboutToAppear() {
+  aboutToAppear(): void {
     this.initializeFireMonitoring()
     this.loadInitialProfile()
     this.syncService.subscribe(this.syncListener)
@@ -63,20 +68,21 @@ struct Index {
     this.refreshAlertState()
   }
 
-  aboutToDisappear() {
-    this.syncService.unsubscribe(this.syncListener)
-  }
-
   aboutToDisappear(): void {
+    this.syncService.unsubscribe(this.syncListener)
     this.alertManager.stop()
   }
 
   async initializeFireMonitoring(): Promise<void> {
     try {
 <<<<<<< HEAD
+<<<<<<< HEAD
       const hostContext = getContext(this).getHostContext() as common.BaseContext
+=======
+      const hostContext = getContext(this) as common.BaseContext
+>>>>>>> 04fc1ea (edited)
       await AlertStorageService.initialize(hostContext)
-    } catch (error: Object) {
+    } catch (error) {
       console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
 =======
       const context = getContext(this) as common.UIAbilityContext
@@ -103,23 +109,29 @@ struct Index {
   private applySnapshot(snapshot: MonitoringSnapshot): void {
     this.monitoringEnabled = snapshot.running
     this.lastFireConfidence = snapshot.aiConfidence
-    this.monitorEventText = snapshot.lastDecision +
-      ' | Pattern confidence: ' + snapshot.patternConfidence.toFixed(2) +
-      ' | Frames: ' + snapshot.framesProcessed.toString()
+    this.monitorEventText =
+      snapshot.lastDecision +
+        ' | Pattern confidence: ' +
+      snapshot.patternConfidence.toFixed(2) +
+        ' | Frames: ' +
+      snapshot.framesProcessed.toString()
   }
 
   private handleFireAlert(alert: FireDetectionAlert): void {
     const channel = AlertPersonalizationService.getPrimaryChannel(this.selectedProfile)
     this.currentAlertType = 'FIRE ALARM DETECTED'
-    this.currentAlertInstruction = 'Fire alarm detected nearby. Follow the safest route and notify emergency contacts.'
+    this.currentAlertInstruction =
+      'Fire alarm detected nearby. Follow the safest route and notify emergency contacts.'
     this.currentAlertConfidence = alert.confidence
     this.currentDetectionMethod = alert.method
-    this.monitorEventText = 'Confirmed fire alarm at ' + alert.timestamp + ' via ' + channel + ' priority channel.'
+    this.monitorEventText =
+      'Confirmed fire alarm at ' + alert.timestamp + ' via ' + channel + ' priority channel.'
+
     HapticService.trigger(this.selectedProfile)
     this.currentPage = 'alert'
   }
 
-  async loadInitialProfile() {
+  async loadInitialProfile(): Promise<void> {
     const profile: ProfileItem | null = await NetworkService.fetchProfile()
     if (profile !== null) {
       this.selectedProfile = profile.profile
@@ -129,33 +141,42 @@ struct Index {
     }
   }
 
-<<<<<<< HEAD
-  async checkBackendAlert() {
+  async checkBackendAlert(): Promise<void> {
     const alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
+
     if (alert !== null) {
+      this.currentAlert = alert
       this.currentAlertType = alert.type
       this.currentAlertInstruction = alert.instruction
       this.currentAlertConfidence = 0
       this.currentDetectionMethod = 'backend-alert'
       this.currentPage = 'alert'
     } else {
+      this.currentAlert = null
       this.monitorEventText = 'No active backend alert right now.'
-=======
-  private applySyncState(state: SyncState) {
-    this.currentAlert = state.activeEmergency
-    this.syncStatusText = 'Live Sync'
-
-    if (state.activeEmergency !== null) {
-      this.currentPage = 'alert'
-    } else if (this.currentPage === 'alert' && !this.isAcknowledging) {
-      this.currentPage = 'home'
->>>>>>> d75db51 (updates on backend and entry)
     }
   }
 
-  async refreshAlertState() {
+  private applySyncState(state: SyncState): void {
+    if (!this.isAcknowledging) {
+      this.currentAlert = state.activeEmergency
+    }
+
+    this.syncStatusText = 'Live Sync'
+
+    if (state.activeEmergency !== null) {
+      this.currentAlertType = state.activeEmergency.type
+      this.currentAlertInstruction = state.activeEmergency.instruction
+      this.currentPage = 'alert'
+    } else if (this.currentPage === 'alert' && !this.isAcknowledging) {
+      this.currentPage = 'home'
+    }
+  }
+
+  async refreshAlertState(): Promise<void> {
     this.syncStatusText = 'Syncing'
     const state = await NetworkService.fetchSyncState()
+
     if (state !== null) {
       this.applySyncState(state)
       return
@@ -164,7 +185,7 @@ struct Index {
     this.syncStatusText = 'Offline'
   }
 
-  async acknowledgeCurrentAlert() {
+  async acknowledgeCurrentAlert(): Promise<void> {
     if (this.currentAlert === null || this.isAcknowledging) {
       return
     }
@@ -186,7 +207,7 @@ struct Index {
     await this.syncService.forceRefresh('acknowledged')
   }
 
-  async sendSOS(message: string) {
+  async sendSOS(message: string): Promise<void> {
     const ok: boolean = await NetworkService.sendSOS(
       this.userName === '' ? 'Unknown User' : this.userName,
       this.selectedProfile,
@@ -216,15 +237,13 @@ struct Index {
         HomePage({
           profileName: this.selectedProfile,
           userName: this.userName,
-<<<<<<< HEAD
           monitoringEnabled: this.monitoringEnabled,
           monitorEventText: this.monitorEventText,
           lastFireConfidence: this.lastFireConfidence,
-=======
           currentAlert: this.currentAlert,
           systemStatus: this.currentAlert !== null ? 'Alert Active' : 'Protected',
           syncStatusText: this.syncStatusText,
->>>>>>> d75db51 (updates on backend and entry)
+
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -241,7 +260,6 @@ struct Index {
             this.currentPage = 'soslog'
           },
           onCheckBackend: () => {
-<<<<<<< HEAD
             this.checkBackendAlert()
           },
           onToggleMonitoring: () => {
@@ -249,9 +267,7 @@ struct Index {
           },
           onViewFireHistory: () => {
             this.currentPage = 'fireHistory'
-=======
             this.refreshAlertState()
->>>>>>> d75db51 (updates on backend and entry)
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -299,18 +315,15 @@ struct Index {
       } else if (this.currentPage === 'alert') {
         AlertPage({
           profileName: this.selectedProfile,
-<<<<<<< HEAD
-          alertType: this.currentAlertType,
-          alertInstruction: this.currentAlertInstruction,
+          alertType: this.currentAlert?.type || this.currentAlertType,
+          alertSeverity: this.currentAlert?.severity || 'HIGH',
+          alertInstruction:
+          this.currentAlert?.instruction || this.currentAlertInstruction,
           alertConfidence: this.currentAlertConfidence,
           detectionMethod: this.currentDetectionMethod,
-=======
-          alertType: this.currentAlert?.type || 'FIRE',
-          alertSeverity: this.currentAlert?.severity || 'HIGH',
-          alertInstruction: this.currentAlert?.instruction || 'Evacuate immediately via nearest exit.',
           syncStatusText: this.syncStatusText,
           isAcknowledging: this.isAcknowledging,
->>>>>>> d75db51 (updates on backend and entry)
+
           onBack: () => {
             this.currentPage = 'home'
           },
