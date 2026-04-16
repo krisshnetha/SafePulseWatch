@@ -45,8 +45,10 @@ struct Index {
     try {
       const context = getContext(this)
       await AlertStorageService.initialize(context)
-    } catch (error: Object) {
-      console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
+    } catch (error) {
+      console.error(
+        'Failed to initialize alert storage context: ' + JSON.stringify(error as any)
+      )
     }
 
     this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {

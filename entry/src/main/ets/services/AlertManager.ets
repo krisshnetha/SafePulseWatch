@@ -101,7 +101,17 @@ export class AlertManager {
   }
 
   getSnapshot(): MonitoringSnapshot {
-    return { ...this.snapshot }
+    // ArkTS can reject object spread in some contexts; copy fields explicitly.
+    return {
+      running: this.snapshot.running,
+      framesProcessed: this.snapshot.framesProcessed,
+      frequencyCandidate: this.snapshot.frequencyCandidate,
+      patternConfidence: this.snapshot.patternConfidence,
+      aiConfidence: this.snapshot.aiConfidence,
+      pendingAi: this.snapshot.pendingAi,
+      lastDecision: this.snapshot.lastDecision,
+      lastFrameAt: this.snapshot.lastFrameAt
+    }
   }
 
   private async handleAudioFrame(frame: AudioFrame): Promise<void> {
@@ -155,8 +165,8 @@ export class AlertManager {
       const clip = this.getClip(sampleRate)
       const firstResult = await this.classifier.classify(clip)
       await this.handleClassificationResult(firstResult, sampleRate, false)
-    } catch (error: Object) {
-      console.error('AlertManager classifier error: ' + JSON.stringify(error))
+    } catch (error) {
+      console.error('AlertManager classifier error: ' + JSON.stringify(error as any))
       this.snapshot.lastDecision = 'AI classification failed for this cycle'
     } finally {
       this.snapshot.pendingAi = false

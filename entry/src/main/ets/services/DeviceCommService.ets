@@ -12,7 +12,9 @@ class HarmonyDistributedSender implements DistributedAlertSender {
   async send(payload: FireAlertPayload): Promise<boolean> {
     try {
       // In production this should call HarmonyOS distributed communication APIs.
-      const bus = (globalThis as Record<string, Object>)['SafePulseDistributedBus'] as Record<string, (message: string) => void> | undefined
+      const bus = (globalThis as unknown as Record<string, unknown>)['SafePulseDistributedBus'] as
+        | Record<string, (message: string) => void>
+        | undefined
       if (bus && bus['publish']) {
         bus['publish'](JSON.stringify(payload))
         return true
@@ -20,8 +22,8 @@ class HarmonyDistributedSender implements DistributedAlertSender {
 
       console.info('Distributed send fallback payload: ' + JSON.stringify(payload))
       return true
-    } catch (error: Object) {
-      console.error('DeviceCommService send failed: ' + JSON.stringify(error))
+    } catch (error) {
+      console.error('DeviceCommService send failed: ' + JSON.stringify(error as any))
       return false
     }
   }
