@@ -6,13 +6,18 @@ import { NavigationPage } from './NavigationPage'
 import { AdminPage } from './AdminPage'
 import { WatchPage } from './WatchPage'
 import { SOSLogPage } from './SOSLogPage'
+
 import { FireHistoryPage } from './FireHistoryPage'
 import { HapticService } from '../services/HapticService'
 import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
 import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
-import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
+// import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 import common from '@ohos.app.ability.common'
+
+import { AlertSyncService } from '../services/AlertSyncService'
+import { NetworkService, ProfileItem, AlertItem, SyncState } from '../services/NetworkService'
+
 
 @Entry
 @Component
@@ -24,6 +29,7 @@ struct Index {
   @State userName: string = ''
   @State emergencyContactName: string = 'Demo Caregiver'
   @State emergencyContactNumber: string = '+6500000000'
+<<<<<<< HEAD
   @State currentAlertType: string = 'FIRE'
   @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
   @State currentAlertConfidence: number = 0
@@ -32,10 +38,28 @@ struct Index {
   @State monitoringEnabled: boolean = true
   @State monitorEventText: string = 'Monitoring is initializing...'
   @State lastFireConfidence: number = 0
+=======
+  @State currentAlert: AlertItem | null = null
+  @State locationText: string = 'SOS sent successfully'
+  @State syncStatusText: string = 'Connecting'
+  @State isAcknowledging: boolean = false
+
+  private syncService: AlertSyncService = AlertSyncService.getInstance()
+  private syncListener = (state: SyncState, _reason: string): void => {
+    this.applySyncState(state)
+  }
+>>>>>>> d75db51 (updates on backend and entry)
 
   aboutToAppear() {
     this.initializeFireMonitoring()
     this.loadInitialProfile()
+    this.syncService.subscribe(this.syncListener)
+    this.syncService.start()
+    this.refreshAlertState()
+  }
+
+  aboutToDisappear() {
+    this.syncService.unsubscribe(this.syncListener)
   }
 
   aboutToDisappear(): void {
@@ -86,11 +110,12 @@ struct Index {
     if (profile !== null) {
       this.selectedProfile = profile.profile
       this.userName = profile.name
-      this.emergencyContactName = profile.contactName
-      this.emergencyContactNumber = profile.contactNumber
+      this.emergencyContactName = profile.contactName || this.emergencyContactName
+      this.emergencyContactNumber = profile.contactNumber || this.emergencyContactNumber
     }
   }
 
+<<<<<<< HEAD
   async checkBackendAlert() {
     const alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
     if (alert !== null) {
@@ -101,14 +126,57 @@ struct Index {
       this.currentPage = 'alert'
     } else {
       this.monitorEventText = 'No active backend alert right now.'
+=======
+  private applySyncState(state: SyncState) {
+    this.currentAlert = state.activeEmergency
+    this.syncStatusText = 'Live Sync'
+
+    if (state.activeEmergency !== null) {
+      this.currentPage = 'alert'
+    } else if (this.currentPage === 'alert' && !this.isAcknowledging) {
+      this.currentPage = 'home'
+>>>>>>> d75db51 (updates on backend and entry)
     }
+  }
+
+  async refreshAlertState() {
+    this.syncStatusText = 'Syncing'
+    const state = await NetworkService.fetchSyncState()
+    if (state !== null) {
+      this.applySyncState(state)
+      return
+    }
+
+    this.syncStatusText = 'Offline'
+  }
+
+  async acknowledgeCurrentAlert() {
+    if (this.currentAlert === null || this.isAcknowledging) {
+      return
+    }
+
+    const alertId = this.currentAlert.id
+    this.isAcknowledging = true
+    this.currentAlert = null
+    this.currentPage = 'home'
+
+    const ok = await NetworkService.acknowledgeAlert(alertId)
+    this.isAcknowledging = false
+
+    if (!ok) {
+      this.syncStatusText = 'Retrying'
+      await this.syncService.forceRefresh('acknowledge-failed')
+      return
+    }
+
+    await this.syncService.forceRefresh('acknowledged')
   }
 
   async sendSOS(message: string) {
     const ok: boolean = await NetworkService.sendSOS(
       this.userName === '' ? 'Unknown User' : this.userName,
       this.selectedProfile,
-      this.currentAlertType,
+      this.currentAlert?.type || 'FIRE',
       1.4448,
       103.8246,
       message
@@ -134,9 +202,15 @@ struct Index {
         HomePage({
           profileName: this.selectedProfile,
           userName: this.userName,
+<<<<<<< HEAD
           monitoringEnabled: this.monitoringEnabled,
           monitorEventText: this.monitorEventText,
           lastFireConfidence: this.lastFireConfidence,
+=======
+          currentAlert: this.currentAlert,
+          systemStatus: this.currentAlert !== null ? 'Alert Active' : 'Protected',
+          syncStatusText: this.syncStatusText,
+>>>>>>> d75db51 (updates on backend and entry)
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -153,6 +227,7 @@ struct Index {
             this.currentPage = 'soslog'
           },
           onCheckBackend: () => {
+<<<<<<< HEAD
             this.checkBackendAlert()
           },
           onToggleMonitoring: () => {
@@ -160,6 +235,9 @@ struct Index {
           },
           onViewFireHistory: () => {
             this.currentPage = 'fireHistory'
+=======
+            this.refreshAlertState()
+>>>>>>> d75db51 (updates on backend and entry)
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -207,10 +285,18 @@ struct Index {
       } else if (this.currentPage === 'alert') {
         AlertPage({
           profileName: this.selectedProfile,
+<<<<<<< HEAD
           alertType: this.currentAlertType,
           alertInstruction: this.currentAlertInstruction,
           alertConfidence: this.currentAlertConfidence,
           detectionMethod: this.currentDetectionMethod,
+=======
+          alertType: this.currentAlert?.type || 'FIRE',
+          alertSeverity: this.currentAlert?.severity || 'HIGH',
+          alertInstruction: this.currentAlert?.instruction || 'Evacuate immediately via nearest exit.',
+          syncStatusText: this.syncStatusText,
+          isAcknowledging: this.isAcknowledging,
+>>>>>>> d75db51 (updates on backend and entry)
           onBack: () => {
             this.currentPage = 'home'
           },
@@ -219,6 +305,9 @@ struct Index {
           },
           onNavigate: () => {
             this.currentPage = 'navigation'
+          },
+          onAcknowledge: () => {
+            this.acknowledgeCurrentAlert()
           }
         })
       } else if (this.currentPage === 'sos') {

@@ -2,14 +2,19 @@
 export struct AlertPage {
   profileName: string = 'Blind'
   alertType: string = 'FIRE'
+  alertSeverity: string = 'HIGH'
   alertInstruction: string = 'Evacuate immediately via nearest exit.'
+
   alertConfidence: number = 0
   detectionMethod: string = 'frequency+pattern+ai'
+
+  syncStatusText: string = 'Live Sync'
+  isAcknowledging: boolean = false
+
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
   onNavigate: () => void = () => {}
-
-  @State acknowledged: boolean = false
+  onAcknowledge: () => void = () => {}
 
   getModeLabel(): string {
     if (this.profileName === 'Blind') {
@@ -58,7 +63,7 @@ export struct AlertPage {
 
             Blank()
 
-            Text('HIGH')
+            Text(this.alertSeverity)
               .fontSize(10)
               .fontColor(Color.White)
               .padding({ left: 8, right: 8, top: 3, bottom: 3 })
@@ -113,11 +118,9 @@ export struct AlertPage {
         .borderRadius(22)
         .backgroundColor('#FF5A1F')
 
-        if (this.acknowledged) {
-          Text('Alert acknowledged')
-            .fontSize(11)
-            .fontColor('#CDEDD9')
-        }
+        Text(`Sync: ${this.syncStatusText}`)
+          .fontSize(11)
+          .fontColor('#CDEDD9')
 
         Button('Send SOS')
           .width('100%')
@@ -141,7 +144,7 @@ export struct AlertPage {
             this.onNavigate()
           })
 
-        Button(this.acknowledged ? 'Acknowledged' : 'Acknowledge')
+        Button(this.isAcknowledging ? 'Acknowledging...' : 'Acknowledge')
           .width('100%')
           .height(38)
           .backgroundColor('#14233A')
@@ -149,7 +152,9 @@ export struct AlertPage {
           .fontSize(12)
           .borderRadius(16)
           .onClick(() => {
-            this.acknowledged = true
+            if (!this.isAcknowledging) {
+              this.onAcknowledge()
+            }
           })
 
         Blank().height(36)

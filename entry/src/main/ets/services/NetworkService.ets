@@ -1,6 +1,9 @@
+import http from '@ohos.net.http'
+
 export interface AlertItem {
   id: string
   type: string
+  normalizedType?: string
   severity: string
   instruction: string
   locationName: string
@@ -45,62 +48,85 @@ export interface SosLogsResponse {
   stats: SosStats
 }
 
+export interface SyncState {
+  userId: string
+  userName: string
+  profile: string
+  contacts: Object[]
+  activeEmergency: AlertItem | null
+  sos: Object
+  history: AlertItem[]
+  stateRevision: number
+}
+
+interface SyncStateResponse {
+  success: boolean
+  state: SyncState
+}
+
 export class NetworkService {
-  private static profileData: ProfileItem = {
-    userId: 'demo-user',
-    name: 'Krisshnetha',
-    profile: 'Blind',
-    contactName: 'Demo Caregiver',
-    contactNumber: '+6500000000',
-    updatedAt: 'Saved just now'
+  static BASE_URL: string = 'http://192.168.113.136:3000'
+  static WS_URL: string = 'ws://192.168.113.136:3000/ws'
+
+  private static async request(
+    path: string,
+    method: http.RequestMethod,
+    body: string | null = null
+  ): Promise<string | null> {
+    let httpRequest = http.createHttp()
+
+    try {
+      const options: http.HttpRequestOptions = {
+        method: method,
+        expectDataType: http.HttpDataType.STRING
+      }
+
+      if (body !== null) {
+        options.header = {
+          'Content-Type': 'application/json'
+        }
+        options.extraData = body
+      }
+
+      const response = await httpRequest.request(`${NetworkService.BASE_URL}${path}`, options)
+      if (response.responseCode < 200 || response.responseCode >= 300) {
+        console.error(`Request failed for ${path}: ` + response.responseCode)
+        console.error('Response: ' + String(response.result))
+        return null
+      }
+
+      return String(response.result)
+    } catch (error) {
+      console.error(`Network request failed for ${path}: ` + JSON.stringify(error))
+      return null
+    } finally {
+      httpRequest.destroy()
+    }
   }
 
-  private static currentAlertData: AlertItem | null = {
-    id: 'alert-1',
-    type: 'FIRE',
-    severity: 'HIGH',
-    instruction: 'Evacuate immediately using the nearest safe exit.',
-    locationName: 'Demo Building',
-    timestamp: '1 min ago',
-    active: true,
-    acknowledged: false,
-    resolved: false
-  }
-
-  private static sosLogData: SosItem[] = [
-    {
-      id: 'sos-1',
-      userName: 'Demo User',
-      profile: 'Blind',
-      alertType: 'FIRE',
-      latitude: 1.3521,
-      longitude: 103.8198,
-      message: 'Need emergency help now.',
-      time: '2 min ago',
-      status: 'ACTIVE',
-      source: 'watch'
+  static async fetchSyncState(): Promise<SyncState | null> {
+    const raw = await NetworkService.request('/api/sync/state', http.RequestMethod.GET)
+    if (raw === null) {
+      return null
     }
-  ]
 
-  private static makeTimeText(): string {
-    let d: Date = new Date()
-    let h: string = d.getHours().toString()
-    let m: string = d.getMinutes().toString()
-    if (m.length === 1) {
-      m = '0' + m
-    }
-    return h + ':' + m
+    const data = JSON.parse(raw) as SyncStateResponse
+    return data.state || null
   }
 
   static async fetchCurrentAlert(): Promise<AlertItem | null> {
-    return NetworkService.currentAlertData
+    const state = await NetworkService.fetchSyncState()
+    return state?.activeEmergency || null
   }
 
   static async fetchAlertHistory(): Promise<AlertItem[]> {
-    if (NetworkService.currentAlertData === null) {
+    const raw = await NetworkService.request('/api/alerts', http.RequestMethod.GET)
+    if (raw === null) {
       return []
     }
-    return [NetworkService.currentAlertData]
+
+    const data = JSON.parse(raw) as Record<string, Object>
+    return (data['alerts'] as AlertItem[]) || []
   }
 
   static async triggerAlert(
@@ -109,27 +135,44 @@ export class NetworkService {
     instruction: string,
     locationName: string
   ): Promise<boolean> {
-    NetworkService.currentAlertData = {
-      id: 'alert-' + Date.now().toString(),
-      type: type,
-      severity: severity,
-      instruction: instruction,
-      locationName: locationName,
-      timestamp: 'Just now',
-      active: true,
-      acknowledged: false,
-      resolved: false
-    }
-    return true
+    const raw = await NetworkService.request(
+      '/api/trigger-alert',
+      http.RequestMethod.POST,
+      JSON.stringify({
+        type,
+        severity,
+        instruction,
+        locationName
+      })
+    )
+    return raw !== null
   }
 
   static async clearAllAlerts(): Promise<boolean> {
-    NetworkService.currentAlertData = null
-    return true
+    const raw = await NetworkService.request('/api/clear-alerts', http.RequestMethod.POST)
+    return raw !== null
+  }
+
+  static async acknowledgeAlert(alertId: string): Promise<boolean> {
+    const raw = await NetworkService.request(
+      '/api/alert/acknowledge',
+      http.RequestMethod.POST,
+      JSON.stringify({
+        alertId,
+        source: 'wearable'
+      })
+    )
+    return raw !== null
   }
 
   static async fetchProfile(): Promise<ProfileItem | null> {
-    return NetworkService.profileData
+    const raw = await NetworkService.request('/api/profile', http.RequestMethod.GET)
+    if (raw === null) {
+      return null
+    }
+
+    const data = JSON.parse(raw) as Record<string, Object>
+    return (data['profile'] as ProfileItem) || null
   }
 
   static async saveProfile(
@@ -138,15 +181,17 @@ export class NetworkService {
     contactName: string,
     contactNumber: string
   ): Promise<boolean> {
-    NetworkService.profileData = {
-      userId: 'demo-user',
-      name: name,
-      profile: profile,
-      contactName: contactName,
-      contactNumber: contactNumber,
-      updatedAt: 'Saved at ' + NetworkService.makeTimeText()
-    }
-    return true
+    const raw = await NetworkService.request(
+      '/api/profile',
+      http.RequestMethod.POST,
+      JSON.stringify({
+        name,
+        profile,
+        contactName,
+        contactNumber
+      })
+    )
+    return raw !== null
   }
 
   static async sendSOS(
@@ -157,68 +202,47 @@ export class NetworkService {
     longitude: number,
     message: string
   ): Promise<boolean> {
-    let newItem: SosItem = {
-      id: 'sos-' + Date.now().toString(),
-      userName: userName,
-      profile: profile,
-      alertType: alertType,
-      latitude: latitude,
-      longitude: longitude,
-      message: message,
-      time: 'Sent at ' + NetworkService.makeTimeText(),
-      status: 'ACTIVE',
-      source: 'watch'
-    }
-    NetworkService.sosLogData.unshift(newItem)
-    return true
+    const raw = await NetworkService.request(
+      '/api/sos',
+      http.RequestMethod.POST,
+      JSON.stringify({
+        userName,
+        profile,
+        emergencyType: alertType,
+        latitude,
+        longitude,
+        message,
+        source: 'wearable'
+      })
+    )
+    return raw !== null
   }
 
-  static async fetchSOSLogs(): Promise<SosLogsResponse> {
-    let activeNum: number = 0
-    let acknowledgedNum: number = 0
-    let resolvedNum: number = 0
-
-    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
-      let item: SosItem = NetworkService.sosLogData[i]
-      if (item.status === 'ACTIVE') {
-        activeNum += 1
-      } else if (item.status === 'ACKNOWLEDGED') {
-        acknowledgedNum += 1
-      } else if (item.status === 'RESOLVED') {
-        resolvedNum += 1
-      }
+  static async fetchSOSLogs(): Promise<SosLogsResponse | null> {
+    const raw = await NetworkService.request('/api/logs', http.RequestMethod.GET)
+    if (raw === null) {
+      return null
     }
 
-    return {
-      success: true,
-      logs: NetworkService.sosLogData,
-      stats: {
-        total: NetworkService.sosLogData.length,
-        active: activeNum,
-        acknowledged: acknowledgedNum,
-        resolved: resolvedNum
-      }
-    }
+    return JSON.parse(raw) as SosLogsResponse
   }
 
-  static async acknowledgeSOS(id: string): Promise<boolean> {
-    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
-      if (NetworkService.sosLogData[i].id === id) {
-        NetworkService.sosLogData[i].status = 'ACKNOWLEDGED'
-        return true
-      }
-    }
-    return false
+  static async acknowledgeSOS(logId: string): Promise<boolean> {
+    const raw = await NetworkService.request(
+      `/api/logs/${logId}/acknowledge`,
+      http.RequestMethod.POST,
+      JSON.stringify({ source: 'wearable' })
+    )
+    return raw !== null
   }
 
-  static async resolveSOS(id: string): Promise<boolean> {
-    for (let i: number = 0; i < NetworkService.sosLogData.length; i++) {
-      if (NetworkService.sosLogData[i].id === id) {
-        NetworkService.sosLogData[i].status = 'RESOLVED'
-        return true
-      }
-    }
-    return false
+  static async resolveSOS(logId: string): Promise<boolean> {
+    const raw = await NetworkService.request(
+      `/api/logs/${logId}/resolve`,
+      http.RequestMethod.POST,
+      JSON.stringify({ source: 'wearable' })
+    )
+    return raw !== null
   }
 
   static getMockLocationString(): string {

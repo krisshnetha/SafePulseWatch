@@ -1,12 +1,18 @@
-import { NetworkService, AlertItem } from '../services/NetworkService'
+import { AlertItem } from '../services/NetworkService'
 
 @Component
 export struct HomePage {
   profileName: string = 'Blind'
   userName: string = ''
+
   monitoringEnabled: boolean = true
   monitorEventText: string = 'Monitoring standby'
   lastFireConfidence: number = 0
+
+  currentAlert: AlertItem | null = null
+  systemStatus: string = 'Protected'
+  syncStatusText: string = 'Offline'
+
   onProfile: () => void = () => {}
   onAdmin: () => void = () => {}
   onWatch: () => void = () => {}
@@ -15,19 +21,6 @@ export struct HomePage {
   onCheckBackend: () => void = () => {}
   onToggleMonitoring: () => void = () => {}
   onViewFireHistory: () => void = () => {}
-
-  @State currentAlert: AlertItem | null = null
-  @State systemStatus: string = 'Protected'
-
-  aboutToAppear() {
-    this.loadAlert()
-  }
-
-  async loadAlert() {
-    let alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
-    this.currentAlert = alert
-    this.systemStatus = alert !== null ? 'Alert Active' : 'Protected'
-  }
 
   @Builder
   chip(label: string, bg: string, fg: string) {
@@ -106,6 +99,12 @@ export struct HomePage {
             this.chip(
               this.profileName,
               '#2E6BFF',
+              '#FFFFFF'
+            )
+
+            this.chip(
+              this.syncStatusText,
+              this.syncStatusText === 'Live Sync' ? '#6A3DFF' : '#5A6476',
               '#FFFFFF'
             )
           }
@@ -202,7 +201,6 @@ export struct HomePage {
         this.actionCard('Navigation', 'Guided safe exit route', '#37D67A', this.onNavigate)
         this.actionCard('SOS Log', 'Emergency history', '#FFB347', this.onSOSLog)
         this.actionCard('Refresh Alert', 'Check live alert now', '#E7D05A', () => {
-          this.loadAlert()
           this.onCheckBackend()
         })
 
