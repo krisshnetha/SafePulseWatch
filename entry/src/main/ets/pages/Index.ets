@@ -6,11 +6,18 @@ import { NavigationPage } from './NavigationPage'
 import { AdminPage } from './AdminPage'
 import { WatchPage } from './WatchPage'
 import { SOSLogPage } from './SOSLogPage'
+import { FireHistoryPage } from './FireHistoryPage'
+import { HapticService } from '../services/HapticService'
+import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
+import { AlertStorageService } from '../services/AlertStorageService'
+import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
 import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 
 @Entry
 @Component
 struct Index {
+  private readonly alertManager: AlertManager = new AlertManager()
+
   @State currentPage: string = 'home'
   @State selectedProfile: string = 'Blind'
   @State userName: string = ''
@@ -18,10 +25,59 @@ struct Index {
   @State emergencyContactNumber: string = '+6500000000'
   @State currentAlertType: string = 'FIRE'
   @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
+  @State currentAlertConfidence: number = 0
+  @State currentDetectionMethod: string = 'frequency+pattern+ai'
   @State locationText: string = 'SOS sent successfully'
+  @State monitoringEnabled: boolean = true
+  @State monitorEventText: string = 'Monitoring is initializing...'
+  @State lastFireConfidence: number = 0
 
   aboutToAppear() {
+    this.initializeFireMonitoring()
     this.loadInitialProfile()
+  }
+
+  aboutToDisappear(): void {
+    this.alertManager.stop()
+  }
+
+  async initializeFireMonitoring(): Promise<void> {
+    try {
+      const context = getContext(this)
+      await AlertStorageService.initialize(context)
+    } catch (error: Object) {
+      console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
+    }
+
+    this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {
+      this.applySnapshot(snapshot)
+    }
+
+    this.alertManager.onAlert = (alert: FireDetectionAlert) => {
+      this.handleFireAlert(alert)
+    }
+
+    await this.alertManager.start()
+    this.monitoringEnabled = true
+  }
+
+  private applySnapshot(snapshot: MonitoringSnapshot): void {
+    this.monitoringEnabled = snapshot.running
+    this.lastFireConfidence = snapshot.aiConfidence
+    this.monitorEventText = snapshot.lastDecision +
+      ' | Pattern confidence: ' + snapshot.patternConfidence.toFixed(2) +
+      ' | Frames: ' + snapshot.framesProcessed.toString()
+  }
+
+  private handleFireAlert(alert: FireDetectionAlert): void {
+    const channel = AlertPersonalizationService.getPrimaryChannel(this.selectedProfile)
+    this.currentAlertType = 'FIRE ALARM DETECTED'
+    this.currentAlertInstruction = 'Fire alarm detected nearby. Follow the safest route and notify emergency contacts.'
+    this.currentAlertConfidence = alert.confidence
+    this.currentDetectionMethod = alert.method
+    this.monitorEventText = 'Confirmed fire alarm at ' + alert.timestamp + ' via ' + channel + ' priority channel.'
+    HapticService.trigger(this.selectedProfile)
+    this.currentPage = 'alert'
   }
 
   async loadInitialProfile() {
@@ -39,7 +95,11 @@ struct Index {
     if (alert !== null) {
       this.currentAlertType = alert.type
       this.currentAlertInstruction = alert.instruction
+      this.currentAlertConfidence = 0
+      this.currentDetectionMethod = 'backend-alert'
       this.currentPage = 'alert'
+    } else {
+      this.monitorEventText = 'No active backend alert right now.'
     }
   }
 
@@ -73,6 +133,9 @@ struct Index {
         HomePage({
           profileName: this.selectedProfile,
           userName: this.userName,
+          monitoringEnabled: this.monitoringEnabled,
+          monitorEventText: this.monitorEventText,
+          lastFireConfidence: this.lastFireConfidence,
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -90,6 +153,12 @@ struct Index {
           },
           onCheckBackend: () => {
             this.checkBackendAlert()
+          },
+          onToggleMonitoring: () => {
+            this.toggleFireMonitoring()
+          },
+          onViewFireHistory: () => {
+            this.currentPage = 'fireHistory'
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -139,6 +208,8 @@ struct Index {
           profileName: this.selectedProfile,
           alertType: this.currentAlertType,
           alertInstruction: this.currentAlertInstruction,
+          alertConfidence: this.currentAlertConfidence,
+          detectionMethod: this.currentDetectionMethod,
           onBack: () => {
             this.currentPage = 'home'
           },
@@ -169,10 +240,29 @@ struct Index {
             this.currentPage = 'home'
           }
         })
+      } else if (this.currentPage === 'fireHistory') {
+        FireHistoryPage({
+          onBack: () => {
+            this.currentPage = 'home'
+          }
+        })
       }
     }
     .width('100%')
     .height('100%')
     .backgroundColor('#06101F')
+  }
+
+  private async toggleFireMonitoring(): Promise<void> {
+    if (this.monitoringEnabled) {
+      await this.alertManager.stop()
+      this.monitoringEnabled = false
+      this.monitorEventText = 'Monitoring paused by user.'
+      return
+    }
+
+    await this.alertManager.start()
+    this.monitoringEnabled = true
+    this.monitorEventText = 'Monitoring resumed. Listening for fire alarm patterns.'
   }
 }

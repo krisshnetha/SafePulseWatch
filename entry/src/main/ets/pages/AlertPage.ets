@@ -3,6 +3,8 @@ export struct AlertPage {
   profileName: string = 'Blind'
   alertType: string = 'FIRE'
   alertInstruction: string = 'Evacuate immediately via nearest exit.'
+  alertConfidence: number = 0
+  detectionMethod: string = 'frequency+pattern+ai'
   onBack: () => void = () => {}
   onSOS: () => void = () => {}
   onNavigate: () => void = () => {}
@@ -69,6 +71,20 @@ export struct AlertPage {
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor(Color.White)
+
+          Text('Fire alarm detected nearby')
+            .fontSize(11)
+            .fontColor('#FFE9DD')
+
+          if (this.alertConfidence > 0) {
+            Text('Confidence: ' + (this.alertConfidence * 100).toFixed(0) + '%')
+              .fontSize(10)
+              .fontColor('#FFF4C2')
+          }
+
+          Text('Detection: ' + this.detectionMethod)
+            .fontSize(10)
+            .fontColor('#FADCC7')
 
           Text(this.alertInstruction)
             .fontSize(11)

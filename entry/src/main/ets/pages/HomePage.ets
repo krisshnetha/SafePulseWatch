@@ -4,12 +4,17 @@ import { NetworkService, AlertItem } from '../services/NetworkService'
 export struct HomePage {
   profileName: string = 'Blind'
   userName: string = ''
+  monitoringEnabled: boolean = true
+  monitorEventText: string = 'Monitoring standby'
+  lastFireConfidence: number = 0
   onProfile: () => void = () => {}
   onAdmin: () => void = () => {}
   onWatch: () => void = () => {}
   onNavigate: () => void = () => {}
   onSOSLog: () => void = () => {}
   onCheckBackend: () => void = () => {}
+  onToggleMonitoring: () => void = () => {}
+  onViewFireHistory: () => void = () => {}
 
   @State currentAlert: AlertItem | null = null
   @State systemStatus: string = 'Protected'
@@ -199,6 +204,62 @@ export struct HomePage {
         this.actionCard('Refresh Alert', 'Check live alert now', '#E7D05A', () => {
           this.loadAlert()
           this.onCheckBackend()
+        })
+
+        Column({ space: 8 }) {
+          Row() {
+            Text('Fire Monitoring')
+              .fontSize(13)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(Color.White)
+
+            Blank()
+
+            Text(this.monitoringEnabled ? 'ACTIVE' : 'PAUSED')
+              .fontSize(10)
+              .fontColor(this.monitoringEnabled ? '#93FFB2' : '#FFD59A')
+          }
+          .width('100%')
+
+          Text(this.monitorEventText)
+            .fontSize(10)
+            .fontColor('#B7C7E3')
+            .maxLines(2)
+
+          if (this.lastFireConfidence > 0) {
+            Text('Last AI confidence: ' + (this.lastFireConfidence * 100).toFixed(0) + '%')
+              .fontSize(10)
+              .fontColor('#FDE68A')
+          }
+
+          Row({ space: 8 }) {
+            Button(this.monitoringEnabled ? 'Pause' : 'Resume')
+              .layoutWeight(1)
+              .height(34)
+              .backgroundColor(this.monitoringEnabled ? '#7D2C2C' : '#1D7A45')
+              .fontColor(Color.White)
+              .fontSize(11)
+              .borderRadius(12)
+              .onClick(() => this.onToggleMonitoring())
+
+            Button('History')
+              .layoutWeight(1)
+              .height(34)
+              .backgroundColor('#22395C')
+              .fontColor(Color.White)
+              .fontSize(11)
+              .borderRadius(12)
+              .onClick(() => this.onViewFireHistory())
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding(14)
+        .borderRadius(18)
+        .backgroundColor('#0E1A30')
+        .border({
+          width: 1,
+          color: '#2E466C'
         })
 
         Blank().height(40)

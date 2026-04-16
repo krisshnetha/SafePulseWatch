@@ -38,6 +38,7 @@ const state = {
   history: [],
   sosLogs: [],
   deliveryLogs: [],
+  phoneFireAlertLogs: [],
 };
 
 const typeToTitle = {
@@ -376,6 +377,44 @@ app.get("/api/logs", (_req, res) =>
     },
   })
 );
+
+app.post('/api/phone/fire-alert', (req, res) => {
+  const { type, timestamp, confidence } = req.body || {};
+
+  if (type !== 'FIRE_ALERT') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid alert type. Expected FIRE_ALERT.'
+    });
+  }
+
+  const log = {
+    id: id('phone-fire'),
+    type,
+    timestamp: timestamp || nowIso(),
+    confidence: Number(confidence || 0),
+    createdAt: nowIso(),
+    source: 'watch-distributed-channel'
+  };
+
+  state.phoneFireAlertLogs.unshift(log);
+
+  console.log('[PHONE NOTIFICATION] Fire alarm detected nearby. Confidence:', log.confidence);
+
+  return res.json({
+    success: true,
+    message: 'Phone receiver accepted fire alert and triggered notification',
+    log
+  });
+});
+
+app.get('/api/phone/fire-alerts', (_req, res) => {
+  res.json({
+    success: true,
+    count: state.phoneFireAlertLogs.length,
+    logs: state.phoneFireAlertLogs
+  });
+});
 
 app.use((err, _req, res, _next) => {
   console.error("Unhandled backend error:", err);
