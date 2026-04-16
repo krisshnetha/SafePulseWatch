@@ -8,10 +8,12 @@ interface DistributedAlertSender {
   send(payload: FireAlertPayload): Promise<boolean>
 }
 
+interface SafePulseDistributedBus {
+  publish?: (message: string) => void
+}
+
 interface SafePulseDistributedBusGlobal {
-  SafePulseDistributedBus?: {
-    publish?: (message: string) => void
-  }
+  SafePulseDistributedBus?: SafePulseDistributedBus
 }
 
 class HarmonyDistributedSender implements DistributedAlertSender {
@@ -19,8 +21,8 @@ class HarmonyDistributedSender implements DistributedAlertSender {
     try {
       // In production this should call HarmonyOS distributed communication APIs.
       const bus = (globalThis as SafePulseDistributedBusGlobal).SafePulseDistributedBus
-      if (bus && bus['publish']) {
-        bus['publish'](JSON.stringify(payload))
+      if (bus !== undefined && bus.publish !== undefined) {
+        bus.publish(JSON.stringify(payload))
         return true
       }
 

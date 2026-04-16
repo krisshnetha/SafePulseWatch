@@ -1,5 +1,11 @@
 import dataPreferences from '@ohos.data.preferences'
 
+// Minimal structural type to satisfy HarmonyOS Preferences typing.
+// (The real BaseContext comes from HarmonyOS runtime; this interface matches the required shape we use.)
+interface BaseContext {
+  stageMode: number
+}
+
 export interface FireAlertRecord {
   id: string
   timestamp: string
