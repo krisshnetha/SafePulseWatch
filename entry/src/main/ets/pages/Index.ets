@@ -12,6 +12,7 @@ import { AlertPersonalizationService } from '../services/AlertPersonalizationSer
 import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
 import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
+import common from '@ohos.app.ability.common'
 
 @Entry
 @Component
@@ -43,12 +44,10 @@ struct Index {
 
   async initializeFireMonitoring(): Promise<void> {
     try {
-      const context = getContext(this)
-      await AlertStorageService.initialize(context)
-    } catch (error) {
-      console.error(
-        'Failed to initialize alert storage context: ' + JSON.stringify(error as Object)
-      )
+      const hostContext = getContext(this).getHostContext() as common.BaseContext
+      await AlertStorageService.initialize(hostContext)
+    } catch (error: Object) {
+      console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
     }
 
     this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {

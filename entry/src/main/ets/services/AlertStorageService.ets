@@ -1,10 +1,5 @@
 import dataPreferences from '@ohos.data.preferences'
-
-// Minimal structural type to satisfy HarmonyOS Preferences typing.
-// (The real BaseContext comes from HarmonyOS runtime; this interface matches the required shape we use.)
-interface BaseContext {
-  stageMode: number
-}
+import common from '@ohos.app.ability.common'
 
 export interface FireAlertRecord {
   id: string
@@ -13,35 +8,24 @@ export interface FireAlertRecord {
   detectionMethod: string
 }
 
-interface PreferencesStoreLike {
-  get(key: string, defaultValue: string): Promise<string>
-  put(key: string, value: string): Promise<void>
-  flush(): Promise<void>
-}
-
 export class AlertStorageService {
   private static readonly STORE_NAME: string = 'fire_alert_store'
   private static readonly ALERTS_KEY: string = 'fire_alerts'
   private static initialized: boolean = false
-  private static context: BaseContext | null = null
-  private static preferences: PreferencesStoreLike | null = null
+  private static preferences: dataPreferences.Preferences | null = null
   private static memoryFallback: Array<FireAlertRecord> = []
 
-  static async initialize(context: BaseContext): Promise<void> {
+  static async initialize(context: common.BaseContext): Promise<void> {
     if (AlertStorageService.initialized) {
       return
     }
 
-    AlertStorageService.context = context
     try {
-      const pref = await dataPreferences.getPreferences(
-        context,
-        AlertStorageService.STORE_NAME
-      ) as PreferencesStoreLike
+      const pref = await dataPreferences.getPreferences(context, AlertStorageService.STORE_NAME)
       AlertStorageService.preferences = pref
       AlertStorageService.initialized = true
-    } catch (error) {
-      console.error('AlertStorageService initialize fallback mode: ' + JSON.stringify(error as Object))
+    } catch (error: Object) {
+      console.error('AlertStorageService initialize fallback mode: ' + JSON.stringify(error))
       AlertStorageService.initialized = true
     }
   }
@@ -73,11 +57,12 @@ export class AlertStorageService {
     }
 
     try {
-      const json = await AlertStorageService.preferences.get(AlertStorageService.ALERTS_KEY, '[]')
+      const value = await AlertStorageService.preferences.get(AlertStorageService.ALERTS_KEY, '[]')
+      const json = typeof value === 'string' ? value : '[]'
       const parsed = JSON.parse(json) as Array<FireAlertRecord>
       return parsed
-    } catch (error) {
-      console.error('AlertStorageService getAlerts error: ' + JSON.stringify(error as Object))
+    } catch (error: Object) {
+      console.error('AlertStorageService getAlerts error: ' + JSON.stringify(error))
       return []
     }
   }
