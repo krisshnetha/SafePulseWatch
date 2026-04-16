@@ -12,12 +12,17 @@ import { HapticService } from '../services/HapticService'
 import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
 import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
+<<<<<<< HEAD
 // import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 import common from '@ohos.app.ability.common'
 
 import { AlertSyncService } from '../services/AlertSyncService'
 import { NetworkService, ProfileItem, AlertItem, SyncState } from '../services/NetworkService'
 
+=======
+import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
+import { common } from '@kit.AbilityKit'
+>>>>>>> f823ab1 (fix: finalize ArkTS DevEco compatibility)
 
 @Entry
 @Component
@@ -68,10 +73,19 @@ struct Index {
 
   async initializeFireMonitoring(): Promise<void> {
     try {
+<<<<<<< HEAD
       const hostContext = getContext(this).getHostContext() as common.BaseContext
       await AlertStorageService.initialize(hostContext)
     } catch (error: Object) {
       console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
+=======
+      const context = getContext(this) as common.UIAbilityContext
+      await AlertStorageService.initialize(context)
+    } catch (error) {
+      console.error(
+        'Failed to initialize alert storage context: ' + JSON.stringify(error as Object)
+      )
+>>>>>>> f823ab1 (fix: finalize ArkTS DevEco compatibility)
     }
 
     this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {

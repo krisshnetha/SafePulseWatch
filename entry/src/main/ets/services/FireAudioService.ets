@@ -18,15 +18,13 @@ interface RuntimeCapturer {
   read(frameSize: number): Promise<Array<number>>
 }
 
-interface SafePulseAudioCapturerGlobal {
-  SafePulseAudioCapturer?: RuntimeCapturer
-}
+declare const SafePulseAudioCapturer: RuntimeCapturer | undefined
 
 class HarmonyMicrophoneAdapter implements AudioSourceAdapter {
   private capturer: RuntimeCapturer | null = null
 
   async start(sampleRate: number): Promise<void> {
-    const runtime = (globalThis as SafePulseAudioCapturerGlobal).SafePulseAudioCapturer
+    const runtime = SafePulseAudioCapturer
     if (!runtime) {
       throw new Error('SafePulseAudioCapturer runtime is not available')
     }
