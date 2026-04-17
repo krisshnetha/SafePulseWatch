@@ -25,11 +25,22 @@ export struct HomePage {
   @Builder
   chip(label: string, bg: string, fg: string) {
     Text(label)
-      .fontSize(10)
+      .fontSize(9)
       .fontColor(fg)
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       .borderRadius(12)
       .backgroundColor(bg)
+  }
+
+  @Builder
+  compactStatus(label: string) {
+    Text(label)
+      .fontSize(9)
+      .fontColor('#C7D6F7')
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
   }
 
   @Builder
@@ -88,7 +99,7 @@ export struct HomePage {
           .fontColor('#DCE7FF')
           .maxLines(1)
 
-        Column({ space: 8 }) {
+        Column({ space: 10 }) {
           Row({ space: 8 }) {
             this.chip(
               this.systemStatus,
@@ -101,33 +112,30 @@ export struct HomePage {
               '#2E6BFF',
               '#FFFFFF'
             )
-
-            this.chip(
-              this.syncStatusText,
-              this.syncStatusText === 'Live Sync' ? '#6A3DFF' : '#5A6476',
-              '#FFFFFF'
-            )
           }
           .width('100%')
           .justifyContent(FlexAlign.Center)
 
-          Text(this.userName !== '' ? this.userName : 'User not set')
+          this.compactStatus(this.syncStatusText)
+
+          Text(this.userName !== '' ? this.userName : 'User')
             .width('100%')
             .textAlign(TextAlign.Center)
-            .fontSize(12)
+            .fontSize(20)
             .fontWeight(FontWeight.Medium)
             .fontColor(Color.White)
             .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
 
           Text('Adaptive safety active')
             .width('100%')
             .textAlign(TextAlign.Center)
-            .fontSize(9)
+            .fontSize(10)
             .fontColor('#BFD2F4')
             .maxLines(1)
         }
         .width('100%')
-        .padding({ left: 18, right: 18, top: 18, bottom: 18 })
+        .padding({ left: 16, right: 16, top: 18, bottom: 18 })
         .borderRadius(24)
         .linearGradient({
           angle: 135,
@@ -142,8 +150,8 @@ export struct HomePage {
           color: '#42A5FF'
         })
         .shadow({
-          radius: 18,
-          color: '#42A5FF55',
+          radius: 14,
+          color: '#42A5FF44',
           offsetX: 0,
           offsetY: 0
         })

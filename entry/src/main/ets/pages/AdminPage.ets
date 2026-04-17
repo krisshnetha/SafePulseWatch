@@ -4,170 +4,98 @@ import { NetworkService } from '../services/NetworkService'
 export struct AdminPage {
   onBack: () => void = () => {}
 
-  @State statusMessage: string = 'Ready'
-  @State selectedSeverity: string = 'HIGH'
+  @State statusText: string = 'Ready to trigger fire alert.'
+  @State isSending: boolean = false
 
-  async triggerAlert(type: string) {
+  private async triggerFireAlert(): Promise<void> {
+    if (this.isSending) {
+      return
+    }
+
+    this.isSending = true
+    this.statusText = 'Triggering fire alert...'
+
     const ok: boolean = await NetworkService.triggerAlert(
-      type,
-      this.selectedSeverity,
-      'Evacuate immediately via nearest exit',
-      'Demo Building'
+      'FIRE ALERT',
+      'HIGH',
+      'Fire detected nearby. Send alert to your emergency contact immediately.',
+      'Demo Zone'
     )
-    this.statusMessage = ok ? type + ' alert triggered' : 'Trigger failed'
-  }
 
-  async clearAlerts() {
-    await NetworkService.clearAllAlerts()
-    this.statusMessage = 'All alerts cleared'
+    this.isSending = false
+    this.statusText = ok ? 'Fire alert triggered successfully.' : 'Failed to trigger fire alert.'
   }
 
   build() {
     Scroll() {
-      Column({ space: 10 }) {
-        Blank().height(20)
+      Column({ space: 14 }) {
+        Blank().height(14)
 
-        Text('Admin')
+        Text('ALERT CONTROL')
           .width('100%')
           .textAlign(TextAlign.Center)
-          .fontSize(18)
+          .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor(Color.White)
+          .maxLines(1)
+
+        Text(' Fire Trigger')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontSize(11)
+          .fontColor('#D3E2FF')
+
+        Column({ space: 10 }) {
+          Text('Fire Alert is detected.')
+            .fontSize(12)
+            .fontColor('#FFE7DD')
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .maxLines(3)
+
+          Text(this.statusText)
+            .fontSize(11)
+            .fontColor('#FFF1EB')
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .maxLines(3)
+        }
+        .width('100%')
+        .padding(16)
+        .borderRadius(20)
+        .backgroundColor('#C94E1E')
+
+        Button(this.isSending ? 'Triggering...' : 'Trigger Fire Alert')
+          .width('100%')
+          .height(46)
+          .enabled(!this.isSending)
+          .backgroundColor('#FFE3D3')
+          .fontColor('#7A2500')
+          .fontSize(13)
+          .borderRadius(18)
+          .onClick(() => {
+            this.triggerFireAlert()
+          })
 
         Button('Back')
           .width('100%')
-          .height(34)
-          .backgroundColor('#1A2740')
+          .height(42)
+          .backgroundColor('#2A3D5C')
           .fontColor(Color.White)
+          .fontSize(12)
           .borderRadius(16)
           .onClick(() => {
             this.onBack()
           })
 
-        Text('Demo emergency control')
-          .fontSize(11)
-          .fontColor('#B0C4DE')
-
-        Row({ space: 6 }) {
-          Text('LOW')
-            .fontSize(10)
-            .fontColor(Color.White)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .borderRadius(10)
-            .backgroundColor(this.selectedSeverity === 'LOW' ? '#E35B44' : '#23324D')
-            .onClick(() => {
-              this.selectedSeverity = 'LOW'
-            })
-
-          Text('HIGH')
-            .fontSize(10)
-            .fontColor(Color.White)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .borderRadius(10)
-            .backgroundColor(this.selectedSeverity === 'HIGH' ? '#E35B44' : '#23324D')
-            .onClick(() => {
-              this.selectedSeverity = 'HIGH'
-            })
-
-          Text('CRITICAL')
-            .fontSize(10)
-            .fontColor(Color.White)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .borderRadius(10)
-            .backgroundColor(this.selectedSeverity === 'CRITICAL' ? '#E35B44' : '#23324D')
-            .onClick(() => {
-              this.selectedSeverity = 'CRITICAL'
-            })
-        }
-
-        Button('FIRE')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#E53935')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.triggerAlert('FIRE')
-          })
-
-        Button('FLOOD')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#1E88E5')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.triggerAlert('FLOOD')
-          })
-
-        Button('QUAKE')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#F2B705')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.triggerAlert('QUAKE')
-          })
-
-        Button('MEDICAL')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#D81B60')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.triggerAlert('MEDICAL')
-          })
-
-        Button('SECURITY')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#546E7A')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.triggerAlert('SECURITY')
-          })
-
-        Button('Clear All')
-          .width('100%')
-          .height(38)
-          .backgroundColor('#2A4F9B')
-          .fontColor(Color.White)
-          .fontSize(12)
-          .borderRadius(16)
-          .onClick(() => {
-            this.clearAlerts()
-          })
-
-        Column({ space: 4 }) {
-          Text('STATUS')
-            .fontSize(10)
-            .fontColor('#B0C4DE')
-
-          Text(this.statusMessage)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .maxLines(2)
-        }
-        .width('100%')
-        .padding(12)
-        .backgroundColor('#0E1A2F')
-        .borderRadius(16)
-
         Blank().height(36)
       }
-      .padding({ left: 22, right: 22 })
+      .padding({ left: 18, right: 18, top: 18, bottom: 18 })
       .width('100%')
     }
+    .scrollBar(BarState.Off)
     .width('100%')
     .height('100%')
-    .backgroundColor('#071224')
+    .backgroundColor('#06101F')
   }
 }

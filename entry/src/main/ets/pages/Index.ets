@@ -8,24 +8,19 @@ import { WatchPage } from './WatchPage'
 import { SOSLogPage } from './SOSLogPage'
 import { FireHistoryPage } from './FireHistoryPage'
 
+import common from '@ohos.app.ability.common'
+
 import { HapticService } from '../services/HapticService'
 import { AlertPersonalizationService } from '../services/AlertPersonalizationService'
 import { AlertStorageService } from '../services/AlertStorageService'
 import { AlertManager, MonitoringSnapshot, FireDetectionAlert } from '../services/AlertManager'
-import common from '@ohos.app.ability.common'
-
-import { AlertSyncService } from '../services/AlertSyncService'
-import { NetworkService, ProfileItem, AlertItem, SyncState } from '../services/NetworkService'
+import { NetworkService, ProfileItem, AlertItem } from '../services/NetworkService'
 
 @Entry
 @Component
 struct Index {
   private readonly alertManager: AlertManager = new AlertManager()
-  private syncService: AlertSyncService = AlertSyncService.getInstance()
-
-  private syncListener = (state: SyncState, _reason: string): void => {
-    this.applySyncState(state)
-  }
+  private alertPollTimer: number = -1
 
   @State currentPage: string = 'home'
   @State selectedProfile: string = 'Blind'
@@ -33,8 +28,8 @@ struct Index {
   @State emergencyContactName: string = 'Demo Caregiver'
   @State emergencyContactNumber: string = '+6500000000'
 
-  @State currentAlertType: string = 'FIRE'
-  @State currentAlertInstruction: string = 'Evacuate immediately via nearest exit.'
+  @State currentAlertType: string = 'FIRE ALERT'
+  @State currentAlertInstruction: string = 'Fire detected nearby. Alert your emergency contact immediately.'
   @State currentAlertConfidence: number = 0
   @State currentDetectionMethod: string = 'frequency+pattern+ai'
 
@@ -44,20 +39,58 @@ struct Index {
 
   @State currentAlert: AlertItem | null = null
   @State locationText: string = 'SOS sent successfully'
-  @State syncStatusText: string = 'Connecting'
-  @State isAcknowledging: boolean = false
+  @State syncStatusText: string = 'Polling backend'
+  @State alertStatusText: string = 'Ready to send fire emergency alert.'
+  @State isSendingAlert: boolean = false
 
   aboutToAppear(): void {
     this.initializeFireMonitoring()
     this.loadInitialProfile()
-    this.syncService.subscribe(this.syncListener)
-    this.syncService.start()
-    this.refreshAlertState()
+    this.startAlertPolling()
   }
 
   aboutToDisappear(): void {
-    this.syncService.unsubscribe(this.syncListener)
+    this.stopAlertPolling()
     this.alertManager.stop()
+  }
+
+  private startAlertPolling(): void {
+    if (this.alertPollTimer !== -1) {
+      return
+    }
+
+    this.syncStatusText = 'Polling backend'
+
+    this.alertPollTimer = setInterval(() => {
+      this.pollCurrentAlert()
+    }, 1500)
+
+    this.pollCurrentAlert()
+  }
+
+  private stopAlertPolling(): void {
+    if (this.alertPollTimer !== -1) {
+      clearInterval(this.alertPollTimer)
+      this.alertPollTimer = -1
+    }
+  }
+
+  private async pollCurrentAlert(): Promise<void> {
+    const alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
+
+    if (alert !== null && alert.active) {
+      this.currentAlert = alert
+      this.currentAlertType = 'FIRE ALERT'
+      this.currentAlertInstruction = alert.instruction
+      this.currentDetectionMethod = 'backend-poll'
+      this.alertStatusText =
+        'Backend fire alert received. Ready to alert emergency contact.'
+      if (this.currentPage !== 'sos') {
+        this.currentPage = 'alert'
+      }
+    } else {
+      this.currentAlert = null
+    }
   }
 
   async initializeFireMonitoring(): Promise<void> {
@@ -65,16 +98,14 @@ struct Index {
       const context = getContext(this) as common.UIAbilityContext
       await AlertStorageService.initialize(context)
     } catch (error) {
-      console.error(
-        'Failed to initialize alert storage context: ' + JSON.stringify(error as Object)
-      )
+      console.error('Failed to initialize alert storage context: ' + JSON.stringify(error))
     }
 
-    this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot) => {
+    this.alertManager.onSnapshot = (snapshot: MonitoringSnapshot): void => {
       this.applySnapshot(snapshot)
     }
 
-    this.alertManager.onAlert = (alert: FireDetectionAlert) => {
+    this.alertManager.onAlert = (alert: FireDetectionAlert): void => {
       this.handleFireAlert(alert)
     }
 
@@ -95,11 +126,13 @@ struct Index {
 
   private handleFireAlert(alert: FireDetectionAlert): void {
     const channel = AlertPersonalizationService.getPrimaryChannel(this.selectedProfile)
-    this.currentAlertType = 'FIRE ALARM DETECTED'
+    this.currentAlertType = 'FIRE ALERT'
     this.currentAlertInstruction =
-      'Fire alarm detected nearby. Follow the safest route and notify emergency contacts.'
+      'Fire alarm frequency detected. Send emergency alert to your contact immediately.'
     this.currentAlertConfidence = alert.confidence
     this.currentDetectionMethod = alert.method
+    this.alertStatusText =
+      'Fire alarm detected at ' + alert.timestamp + '. Ready to alert emergency contact.'
     this.monitorEventText =
       'Confirmed fire alarm at ' + alert.timestamp + ' via ' + channel + ' priority channel.'
 
@@ -117,6 +150,7 @@ struct Index {
     }
   }
 
+<<<<<<< Updated upstream
   async checkBackendAlert(): Promise<void> {
     const alert: AlertItem | null = await NetworkService.fetchCurrentAlert()
 
@@ -183,6 +217,8 @@ struct Index {
     await this.syncService.forceRefresh('acknowledged')
   }
 
+=======
+>>>>>>> Stashed changes
   async sendSOS(message: string): Promise<void> {
     const ok: boolean = await NetworkService.sendSOS(
       this.userName === '' ? 'Unknown User' : this.userName,
@@ -207,6 +243,42 @@ struct Index {
     this.currentPage = 'sos'
   }
 
+  async sendFireAlertToContact(): Promise<void> {
+    if (this.isSendingAlert) {
+      return
+    }
+
+    this.isSendingAlert = true
+    this.alertStatusText = 'Sending fire emergency alert...'
+
+    const ok: boolean = await NetworkService.sendSOS(
+      this.userName === '' ? 'Unknown User' : this.userName,
+      this.selectedProfile,
+      'FIRE ALERT',
+      1.4448,
+      103.8246,
+      'Fire alert triggered. Please respond immediately.'
+    )
+
+    this.isSendingAlert = false
+
+    if (ok) {
+      this.alertStatusText =
+        'Fire alert sent to ' +
+        this.emergencyContactName +
+          ' (' +
+        this.emergencyContactNumber +
+          ').'
+      this.locationText =
+        'Emergency alert sent to ' +
+        this.emergencyContactName +
+          ' with live location.'
+      this.currentPage = 'sos'
+    } else {
+      this.alertStatusText = 'Failed to send fire alert. Please try again.'
+    }
+  }
+
   build() {
     Column() {
       if (this.currentPage === 'home') {
@@ -219,7 +291,10 @@ struct Index {
           currentAlert: this.currentAlert,
           systemStatus: this.currentAlert !== null ? 'Alert Active' : 'Protected',
           syncStatusText: this.syncStatusText,
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
           onProfile: () => {
             this.currentPage = 'profile'
           },
@@ -236,14 +311,17 @@ struct Index {
             this.currentPage = 'soslog'
           },
           onCheckBackend: () => {
-            this.checkBackendAlert()
+            this.pollCurrentAlert()
           },
           onToggleMonitoring: () => {
             this.toggleFireMonitoring()
           },
           onViewFireHistory: () => {
             this.currentPage = 'fireHistory'
+<<<<<<< Updated upstream
             this.refreshAlertState()
+=======
+>>>>>>> Stashed changes
           }
         })
       } else if (this.currentPage === 'profile') {
@@ -290,6 +368,7 @@ struct Index {
         })
       } else if (this.currentPage === 'alert') {
         AlertPage({
+<<<<<<< Updated upstream
           profileName: this.selectedProfile,
           alertType: this.currentAlert?.type || this.currentAlertType,
           alertSeverity: this.currentAlert?.severity || 'HIGH',
@@ -304,12 +383,25 @@ struct Index {
           },
           onSOS: () => {
             this.sendSOS('SOS triggered from emergency alert screen.')
+=======
+          contactName: this.emergencyContactName,
+          contactNumber: this.emergencyContactNumber,
+          statusText: this.alertStatusText,
+          isSending: this.isSendingAlert,
+          onSendAlert: () => {
+            this.sendFireAlertToContact()
+>>>>>>> Stashed changes
           },
           onNavigate: () => {
             this.currentPage = 'navigation'
           },
+<<<<<<< Updated upstream
           onAcknowledge: () => {
             this.acknowledgeCurrentAlert()
+=======
+          onBack: () => {
+            this.currentPage = 'home'
+>>>>>>> Stashed changes
           }
         })
       } else if (this.currentPage === 'sos') {
