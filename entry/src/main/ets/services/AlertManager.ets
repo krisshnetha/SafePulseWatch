@@ -101,7 +101,6 @@ export class AlertManager {
   }
 
   getSnapshot(): MonitoringSnapshot {
-    // ArkTS can reject object spread in some contexts; copy fields explicitly.
     return {
       running: this.snapshot.running,
       framesProcessed: this.snapshot.framesProcessed,
@@ -205,7 +204,12 @@ export class AlertManager {
     this.lastAlertEpochMs = Date.now()
 
     this.vibrationService.triggerFireAlarm()
-    await this.deviceCommService.sendFireAlert(confidence)
+
+    const delivered = await this.deviceCommService.sendFireAlert(confidence)
+    if (!delivered) {
+      console.error('Confirmed fire alert detected, but delivery to phone/backend failed')
+    }
+
     const saved: FireAlertRecord = await AlertStorageService.saveAlert(confidence, method)
 
     this.onAlert({

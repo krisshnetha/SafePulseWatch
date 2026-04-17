@@ -59,6 +59,12 @@ export interface SyncState {
   stateRevision: number
 }
 
+export interface FireAlertPayload {
+  type: string
+  timestamp: string
+  confidence: number
+}
+
 interface SyncStateResponse {
   success: boolean
   state: SyncState
@@ -241,6 +247,15 @@ export class NetworkService {
       `/api/logs/${logId}/resolve`,
       http.RequestMethod.POST,
       JSON.stringify({ source: 'wearable' })
+    )
+    return raw !== null
+  }
+
+  static async sendPhoneFireAlert(payload: FireAlertPayload): Promise<boolean> {
+    const raw = await NetworkService.request(
+      '/api/phone/fire-alert',
+      http.RequestMethod.POST,
+      JSON.stringify(payload)
     )
     return raw !== null
   }

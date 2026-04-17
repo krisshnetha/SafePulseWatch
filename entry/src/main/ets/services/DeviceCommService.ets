@@ -1,8 +1,4 @@
-export interface FireAlertPayload {
-  type: string
-  timestamp: string
-  confidence: number
-}
+import { NetworkService, FireAlertPayload } from './NetworkService'
 
 interface DistributedAlertSender {
   send(payload: FireAlertPayload): Promise<boolean>
@@ -17,17 +13,18 @@ declare const SafePulseDistributedBus: SafePulseDistributedBusAdapter | undefine
 class HarmonyDistributedSender implements DistributedAlertSender {
   async send(payload: FireAlertPayload): Promise<boolean> {
     try {
-      // In production this should call HarmonyOS distributed communication APIs.
       const bus = SafePulseDistributedBus
+
       if (bus !== undefined && bus.publish !== undefined) {
         bus.publish(JSON.stringify(payload))
+        console.info('Distributed fire alert sent successfully')
         return true
       }
 
-      console.info('Distributed send fallback payload: ' + JSON.stringify(payload))
-      return true
+      console.warn('Distributed bus unavailable; fire alert not sent via device channel')
+      return false
     } catch (error) {
-      console.error('DeviceCommService send failed: ' + JSON.stringify(error as Object))
+      console.error('DeviceCommService distributed send failed: ' + JSON.stringify(error as Object))
       return false
     }
   }
@@ -46,6 +43,22 @@ export class DeviceCommService {
       timestamp: new Date().toISOString(),
       confidence
     }
-    return this.sender.send(payload)
+
+    const distributedOk = await this.sender.send(payload)
+    if (distributedOk) {
+      console.info('Fire alert delivered through distributed channel')
+      return true
+    }
+
+    console.info('Falling back to backend /api/phone/fire-alert')
+    const backendOk = await NetworkService.sendPhoneFireAlert(payload)
+
+    if (backendOk) {
+      console.info('Fire alert delivered through backend fallback')
+      return true
+    }
+
+    console.error('Fire alert delivery failed on both distributed and backend paths')
+    return false
   }
 }
