@@ -71,8 +71,8 @@ interface SyncStateResponse {
 }
 
 export class NetworkService {
-  static BASE_URL: string = 'http://192.168.113.136:3000'
-  static WS_URL: string = 'ws://192.168.113.136:3000/ws'
+  static BASE_URL: string = 'http://172.20.10.2:3000'
+  static WS_URL: string = 'ws://172.20.10.2:3000/ws'
 
   private static async request(
     path: string,
